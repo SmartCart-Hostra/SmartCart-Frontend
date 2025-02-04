@@ -1,0 +1,2 @@
+Create env
+npx create-expo-app@latest
