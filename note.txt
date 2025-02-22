@@ -1,2 +1,4 @@
 Create env
 npx create-expo-app@latest
+
+using app.json to store the env 
