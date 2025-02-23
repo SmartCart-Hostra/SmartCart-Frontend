@@ -12,6 +12,11 @@ export default function Dashboard() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false, // 🚀 Hides the top bar
+        tabBarStyle: {
+          backgroundColor: "#F8F3E6", // ✅ Set tab bar background color
+          borderTopWidth: 0, // Remove top border for a clean look
+          elevation: 0, // Remove Android shadow
+        },
         tabBarIcon: ({ color, size }) => {
           let iconName;
 
