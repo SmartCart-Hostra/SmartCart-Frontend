@@ -110,9 +110,9 @@ const PreferencesScreen: React.FC = () => {
   
         if (response.status === 200) {
           const data = await response.json();
-          console.log(`Fetched ${endpoint}:`, data); // ✅ Log API response
+          //console.log(`Fetched ${endpoint}:`, data); 
           setState(data[endpoint] || []);
-          setInitialState(data[endpoint] || []); // ✅ Ensure initial state is set correctly
+          setInitialState(data[endpoint] || []); //  Ensure initial state is set correctly
         } else {
           console.error(`Failed to fetch ${endpoint}. Status: ${response.status}`);
         }
@@ -122,7 +122,7 @@ const PreferencesScreen: React.FC = () => {
     };
   
     fetchPreferences("diets", setSelectedDiets, setInitialDiets);
-    fetchPreferences("intolerances", setSelectedAllergies, setInitialAllergies); // ✅ Ensure allergies are set
+    fetchPreferences("intolerances", setSelectedAllergies, setInitialAllergies);
     fetchPreferences("cuisines", setSelectedCuisine, setInitialCuisine);
     fetchPreferences("nutrition_goals", setSelectedNutrition, setInitialNutrition);
   }, []);
@@ -139,11 +139,11 @@ const PreferencesScreen: React.FC = () => {
       const removedItems = initial.filter(item => !selected.includes(item));
       const addedItems = selected.filter(item => !initial.includes(item));
 
-      console.log(`🟢 ${endpoint} - Added Items:`, addedItems);
-      console.log(`🔴 ${endpoint} - Removed Items:`, removedItems); // ✅ Debug removed items
+      //console.log(`${endpoint} - Added Items:`, addedItems);
+      //console.log(`${endpoint} - Removed Items:`, removedItems); 
 
       if (addedItems.length > 0) {
-        console.log(`📤 Sending POST to ${API_URL}/${endpoint}:`, { [endpoint]: addedItems });
+        //console.log(`Sending POST to ${API_URL}/${endpoint}:`, { [endpoint]: addedItems });
 
         const response = await fetch(`${API_URL}/${endpoint}`, {
           method: "POST",
@@ -154,12 +154,12 @@ const PreferencesScreen: React.FC = () => {
           body: JSON.stringify({ [endpoint]: addedItems }),
         });
 
-        const responseBody = await response.json();
-        console.log(`✅ POST Response from ${endpoint}:`, responseBody);
+        //const responseBody = await response.json();
+        //console.log(`POST Response from ${endpoint}:`, responseBody);
       }
 
       if (removedItems.length > 0) {
-        console.log(`📤 Sending DELETE to ${API_URL}/${endpoint}:`, { [endpoint]: removedItems });
+        //console.log(` Sending DELETE to ${API_URL}/${endpoint}:`, { [endpoint]: removedItems });
 
         const response = await fetch(`${API_URL}/${endpoint}`, {
           method: "DELETE",
@@ -170,20 +170,20 @@ const PreferencesScreen: React.FC = () => {
           body: JSON.stringify({ [endpoint]: removedItems }),
         });
 
-        const responseBody = await response.json();
-        console.log(`✅ DELETE Response from ${endpoint}:`, responseBody);
+        //const responseBody = await response.json();
+        //console.log(` DELETE Response from ${endpoint}:`, responseBody);
       } else {
-        console.warn(`⚠️ No items to remove for ${endpoint}`);
+        //console.warn(`⚠️ No items to remove for ${endpoint}`);
       }
     } catch (error) {
-      console.error(`❌ Error saving ${endpoint}:`, error);
+      console.error(` Error saving ${endpoint}:`, error);
     }
 };
 
 
   // Handle selection toggles
   const toggleOption = (category: string, apiLabel: string) => {
-    console.log(`Toggling: ${apiLabel} in ${category}`);
+    //console.log(`Toggling: ${apiLabel} in ${category}`);
     if (category === "Dietary Restrictions") {
       setSelectedDiets(prev =>
         prev.includes(apiLabel) ? prev.filter(item => item !== apiLabel) : [...prev, apiLabel]
@@ -234,9 +234,9 @@ const PreferencesScreen: React.FC = () => {
         style={[
           styles.optionButton,
           { backgroundColor: color },
-          isSelected && styles.selectedOption, // ✅ Apply selected style
+          isSelected && styles.selectedOption,
         ]}
-        onPress={() => toggleOption(category, apiLabel)} // ✅ Use apiLabel
+        onPress={() => toggleOption(category, apiLabel)}
       >
         <Text style={styles.optionText}>{label}</Text>
         {isSelected && <Text style={styles.checkmark}> ✅</Text>}
