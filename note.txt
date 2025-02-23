@@ -2,3 +2,7 @@ Create env
 npx create-expo-app@latest
 
 using app.json to store the env 
+
+KeyboardAvoidingView → Moves UI up when keyboard appears
+ScrollView → Allows scrolling when needed
+TouchableWithoutFeedback → Dismisses keyboard when tapping outside

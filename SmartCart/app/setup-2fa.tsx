@@ -12,7 +12,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage"; // ✅ For storing set-cookie
 
@@ -22,6 +22,7 @@ export default function Setup2FAScreen() {
   const router = useRouter();
   const [verificationCode, setVerificationCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const {type} = useLocalSearchParams();
 
   const handleVerifyCode = async () => {
     if (verificationCode.length !== 6) {
@@ -32,15 +33,15 @@ export default function Setup2FAScreen() {
     setLoading(true);
   
     try {
-      const email = await AsyncStorage.getItem("userEmail"); // ✅ Retrieve stored email
-  
+      const email = await AsyncStorage.getItem("userEmail"); // Retrieve stored email
+      const verifyEndpoint = type === "signup" ? "/verify-2fa" : "/login-verify"; // Choose correct API endpoint
       if (!email) {
         Alert.alert("Error", "Email not found. Please login again.");
         setLoading(false);
         return;
       }
   
-      const response = await fetch(`${API_URL}/login-verify`, {
+      const response = await fetch(`${API_URL}${verifyEndpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -50,17 +51,15 @@ export default function Setup2FAScreen() {
       });
   
       if (response.status === 200) {
-        const setCookie = response.headers.get("Set-Cookie"); // ✅ Extract cookie
-  
-        if (setCookie) {
-          await AsyncStorage.setItem("authToken", setCookie); // ✅ Store token for future use
-          console.log("Stored Cookie:", setCookie);
+        if (type === "signup") {
+          Alert.alert("Success", "Email verified! You can now log in.");
+          router.push("/"); // ✅ Redirect new users to login
         } else {
-          console.warn("Warning: Set-Cookie header is missing.");
+          Alert.alert("Success", "2FA Verified! You are now logged in.");
+          const setCookie = response.headers.get("Set-Cookie");
+          if (setCookie) await AsyncStorage.setItem("authToken", setCookie);
+          router.push("/dashboard"); // ✅ Redirect logged-in users to dashboard
         }
-  
-        Alert.alert("Success", "2FA Verified! You are now logged in.");
-        router.push("/dashboard"); // ✅ Navigate to dashboard
       } else {
         const errorData = await response.json();
         Alert.alert("Error", errorData.message || "Invalid verification code.");
