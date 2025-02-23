@@ -33,8 +33,9 @@ export default function Setup2FAScreen() {
     setLoading(true);
   
     try {
-      const email = await AsyncStorage.getItem("userEmail"); // Retrieve stored email
-      const verifyEndpoint = type === "signup" ? "/verify-2fa" : "/login-verify"; // Choose correct API endpoint
+      const email = await AsyncStorage.getItem("userEmail");
+      const verifyEndpoint = type === "signup" ? "/verify-2fa" : "/login-verify";
+  
       if (!email) {
         Alert.alert("Error", "Email not found. Please login again.");
         setLoading(false);
@@ -47,17 +48,23 @@ export default function Setup2FAScreen() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, token: verificationCode }),
-        credentials: "include", // ✅ Ensures cookies are handled properly
       });
   
       if (response.status === 200) {
+        const data = await response.json();
+        console.log("Received token:", data.token); // ✅ Debugging
+        if (data.token) {
+          await AsyncStorage.setItem("authToken", data.token); // ✅ Store JWT Token
+          console.log("Token stored successfully!"); // ✅ Debugging
+        } else {
+          console.warn("No token received from server."); // ✅ Debugging
+        }
+  
         if (type === "signup") {
           Alert.alert("Success", "Email verified! You can now log in.");
           router.push("/"); // ✅ Redirect new users to login
         } else {
           Alert.alert("Success", "2FA Verified! You are now logged in.");
-          const setCookie = response.headers.get("Set-Cookie");
-          if (setCookie) await AsyncStorage.setItem("authToken", setCookie);
           router.push("/dashboard"); // ✅ Redirect logged-in users to dashboard
         }
       } else {
@@ -71,6 +78,7 @@ export default function Setup2FAScreen() {
   
     setLoading(false);
   };
+  
   
 
   return (

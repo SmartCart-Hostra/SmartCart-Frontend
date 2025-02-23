@@ -32,20 +32,24 @@ export default function LoginScreen() {
         const storedEmail = await AsyncStorage.getItem("userEmail");
         const storedToken = await AsyncStorage.getItem("authToken");
 
+        console.log("Stored Email:", storedEmail);  // ✅ Debugging
+        console.log("Stored Token:", storedToken);  // ✅ Debugging
+
         if (storedEmail) setEmail(storedEmail); // ✅ Pre-fill email if stored
 
         if (storedToken) {
           console.log("Checking stored token...");
 
-          // Send request to backend to validate token
+          // ✅ Send request with correct JWT Authorization header
           const response = await fetch(`${API_URL}/protected`, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              "Cookie": storedToken,
+              "Authorization": `Bearer ${storedToken}`,  // ✅ Fixed token header
             },
-            credentials: "include",
           });
+
+          console.log("Response Status:", response.status);  // ✅ Debugging
 
           if (response.status === 200) {
             const data = await response.json();
@@ -56,6 +60,8 @@ export default function LoginScreen() {
             console.log("Invalid token, staying on login page.");
             await AsyncStorage.removeItem("authToken"); // ✅ Clear invalid token
           }
+        } else {
+          console.log("No stored token found.");
         }
       } catch (error) {
         console.error("Error checking auth status:", error);
@@ -65,6 +71,8 @@ export default function LoginScreen() {
 
     checkAuthStatus();
   }, []);
+
+
 
   // ✅ Handle manual login
   const handleLogin = async () => {

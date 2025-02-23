@@ -138,41 +138,40 @@ const AccountInfo = () => {
   };
   
   const handleLogout = async () => {
-      try {
-        const authToken = await AsyncStorage.getItem("authToken");
-    
-        if (!authToken) {
-          console.warn("No auth token found, skipping logout request.");
-        } else {
-          // ✅ Send POST request to /logout with token in Cookie header
-          const response = await fetch(`${API_URL}/logout`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Cookie": authToken, // ✅ Attach stored token in Cookie header
-            },
-            credentials: "include",
-          });
-    
-          if (response.status !== 200) {
-            console.warn("Logout request failed:", response.status);
-          }
+    try {
+      const authToken = await AsyncStorage.getItem("authToken");
+
+      if (!authToken) {
+        console.warn("No auth token found, skipping logout request.");
+      } else {
+        // ✅ Send POST request to /logout with correct JWT Authorization header
+        const response = await fetch(`${API_URL}/logout`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${authToken}`,  // ✅ Fixed token header
+          },
+        });
+
+        if (response.status !== 200) {
+          console.warn("Logout request failed:", response.status);
         }
-    
-        // ✅ Clear AsyncStorage (remove token and user data)
-        await AsyncStorage.removeItem("authToken");
-        //await AsyncStorage.removeItem("userEmail");
-        await AsyncStorage.removeItem("username");
-    
-        // ✅ Navigate back to login page
-        router.push("/");
-    
-        Alert.alert("Logged Out", "You have been logged out successfully.");
-      } catch (error) {
-        console.error("Logout error:", error);
-        Alert.alert("Error", "Failed to log out. Please try again.");
       }
-    };
+
+      // ✅ Clear AsyncStorage (remove token and user data)
+      await AsyncStorage.removeItem("authToken");
+      await AsyncStorage.removeItem("username");
+
+      // ✅ Navigate back to login page
+      router.push("/");
+
+      Alert.alert("Logged Out", "You have been logged out successfully.");
+    } catch (error) {
+      console.error("Logout error:", error);
+      Alert.alert("Error", "Failed to log out. Please try again.");
+    }
+};
+
 
   return (
     <KeyboardAvoidingView
