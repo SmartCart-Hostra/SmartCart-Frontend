@@ -1,32 +1,27 @@
 import React, { useState, useEffect } from "react";
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
-  FlatList,
-  Image,
   StyleSheet,
-  ActivityIndicator,
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
+import RecipeList from "../components/recipeList"; // ✅ Import RecipeList
 
 const API_URL = Constants.expoConfig?.extra?.API_URL;
 
 export default function HomeScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets(); // ✅ Get safe area insets
   const [searchQuery, setSearchQuery] = useState("");
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState("");
 
-  // Load auth token from AsyncStorage
   useEffect(() => {
     const loadToken = async () => {
       try {
@@ -46,7 +41,6 @@ export default function HomeScreen() {
     loadToken();
   }, []);
 
-  // Function to fetch random recipes
   const fetchRandomRecipes = async (authToken: string) => {
     setLoading(true);
     try {
@@ -54,7 +48,7 @@ export default function HomeScreen() {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${authToken}`, // ✅ Include token in headers
+          "Authorization": `Bearer ${authToken}`,
         },
       });
 
@@ -71,7 +65,6 @@ export default function HomeScreen() {
     setLoading(false);
   };
 
-  // Function to search for recipes
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     setLoading(true);
@@ -80,7 +73,7 @@ export default function HomeScreen() {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`, // ✅ Include token in headers
+          "Authorization": `Bearer ${token}`,
         },
       });
 
@@ -100,9 +93,8 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Top Bar with Search and Settings */}
+        {/* Top Bar */}
         <View style={styles.topBar}>
-          {/* Search Bar Wrapper (Takes remaining space) */}
           <View style={styles.searchContainer}>
             <TextInput
               style={styles.searchInput}
@@ -113,29 +105,13 @@ export default function HomeScreen() {
             />
           </View>
 
-          {/* Settings Button (Centered in the right space) */}
           <TouchableOpacity onPress={() => router.push("/preferencesScreen")} style={styles.settingsButton}>
             <Ionicons name="filter" size={34} color="black" />
           </TouchableOpacity>
         </View>
 
-
-
-        {/* Recipe List or Loader */}
-        {loading ? (
-          <ActivityIndicator size="large" color="#007BFF" style={styles.loader} />
-        ) : (
-          <FlatList
-            data={recipes}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-              <TouchableOpacity style={styles.recipeCard} onPress={() => router.push(`/recipe/${item.id}`)}>
-                <Image source={{ uri: item.image }} style={styles.recipeImage} />
-                <Text style={styles.recipeTitle}>{item.title}</Text>
-              </TouchableOpacity>
-            )}
-          />
-        )}
+        {/* Recipe List (Now in a separate file) */}
+        <RecipeList recipes={recipes} loading={loading} />
       </View>
     </SafeAreaView>
   );
@@ -158,7 +134,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   searchContainer: {
-    flex: 1, // ✅ Search bar takes up available space
+    flex: 1,
   },
   searchInput: {
     width: "100%",
@@ -170,8 +146,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   settingsButton: {
-    width: 50, // ✅ Ensure space for centering
-    alignItems: "center", // ✅ Center the icon horizontally
-    justifyContent: "center", // ✅ Center the icon vertically
+    width: 50,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
