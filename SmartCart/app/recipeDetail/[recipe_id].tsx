@@ -13,55 +13,53 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_URL = Constants.expoConfig?.extra?.API_URL;
+const API_URL = Constants.expoConfig?.extra?.API_URL || "https://your-api-endpoint.com";
 
 export default function RecipeDetail() {
   const params = useLocalSearchParams();
   const recipe_id = params.recipe_id;
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchRecipeDetails = async () => {
-        try {
-          if (!recipe_id) {
-            Alert.alert("Error", "No recipe ID provided.");
-            return;
-          }
-      
-          const authToken = await AsyncStorage.getItem("authToken");
-          if (!authToken) {
-            Alert.alert("Error", "Authentication required. Please log in.");
-            return;
-          }
-      
-          //console.log(`Fetching recipe details for ID: ${recipe_id}`);
-      
-          const response = await fetch(`${API_URL}/recipedetail/${recipe_id}`, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${authToken}`,
-            },
-          });
-      
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error("🚨 API Error Response:", errorText);
-            throw new Error(`API returned ${response.status}: ${errorText}`);
-          }
-      
-          const data = await response.json();
-          //console.log("✅ Recipe Details Response:", data); 
-      
-          setRecipe(data);
-        } catch (error) {
-          console.error("🚨 Error fetching recipe details:", error);
-          Alert.alert("Error", "Failed to load recipe details. Please try again.");
+      try {
+        if (!recipe_id) {
+          Alert.alert("Error", "No recipe ID provided.");
+          return;
         }
-        setLoading(false);
-      };
-      
+
+        const authToken = await AsyncStorage.getItem("authToken");
+        if (!authToken) {
+          Alert.alert("Error", "Authentication required. Please log in.");
+          router.push("/"); // Redirect to login if token is missing
+          return;
+        }
+
+        const response = await fetch(`${API_URL}/recipedetail/${recipe_id}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${authToken}`,
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("🚨 API Error Response:", errorText);
+          Alert.alert("Error", `Failed to fetch recipe: ${response.status}`);
+          return;
+        }
+
+        const data = await response.json();
+        setRecipe(data);
+      } catch (error) {
+        console.error("🚨 Error fetching recipe details:", error);
+        Alert.alert("Error", "Failed to load recipe details. Please try again.");
+      }
+      setLoading(false);
+    };
 
     fetchRecipeDetails();
   }, [recipe_id]);
@@ -82,6 +80,10 @@ export default function RecipeDetail() {
     );
   }
 
+  // ✅ Ensure default values to prevent crashes
+  const ingredients = recipe.extendedIngredients || [];
+  const instructions = recipe.analyzedInstructions?.[0]?.steps || [];
+
   return (
     <ScrollView style={styles.container}>
       {/* Recipe Image & Title */}
@@ -96,9 +98,9 @@ export default function RecipeDetail() {
       {/* Ingredients List */}
       <Text style={styles.sectionTitle}>Ingredients</Text>
       <FlatList
-        data={recipe.extendedIngredients}
-        keyExtractor={(item) => item.id.toString()}
-        nestedScrollEnabled={true}
+        data={ingredients}
+        keyExtractor={(item, index) => (item.id ? item.id.toString() : `ingredient-${index}`)}
+        scrollEnabled={false} // Prevents nested scroll issues
         renderItem={({ item }) => (
           <View style={styles.ingredientItem}>
             <Image source={{ uri: `https://spoonacular.com/cdn/ingredients_100x100/${item.image}` }} style={styles.ingredientImage} />
@@ -109,22 +111,25 @@ export default function RecipeDetail() {
 
       {/* Step-by-Step Instructions */}
       <Text style={styles.sectionTitle}>Instructions</Text>
-      {recipe.analyzedInstructions.length > 0 ? (
-        recipe.analyzedInstructions[0].steps.map((step) => (
-          <View key={step.number} style={styles.stepContainer}>
-            <Text style={styles.stepNumber}>Step {step.number}</Text>
-            <Text style={styles.stepText}>{step.step}</Text>
-            <View style={styles.stepImagesContainer}>
-              {/* Show Equipment Images */}
-              {step.equipment.map((equipment, index) => (
-                <Image key={index} source={{ uri: equipment.image }} style={styles.stepImage} />
-              ))}
-            </View>
-          </View>
-        ))
-      ) : (
-        <Text style={styles.noInstructionsText}>No instructions available.</Text>
-      )}
+      {instructions.length > 0 ? (
+  instructions.map((step, index) => (
+    <View key={`step-${index}`} style={styles.stepContainer}>
+      <Text style={styles.stepNumber}>Step {step.number}</Text>
+      <Text style={styles.stepText}>{step.step}</Text>
+
+      <View style={styles.stepImagesContainer}>
+        {step.equipment?.length > 0 ? (
+          step.equipment.map((equipment, eqIndex) => (
+            <Image key={`equipment-${index}-${eqIndex}`} source={{ uri: equipment.image }} style={styles.stepImage} />
+          ))
+        ) : null}
+      </View>
+    </View>
+  ))
+) : (
+  <Text style={styles.noInstructionsText}>No instructions available.</Text>
+)}
+
     </ScrollView>
   );
 }
