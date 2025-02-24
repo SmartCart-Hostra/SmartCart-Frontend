@@ -4,6 +4,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Text,
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,7 +12,7 @@ import { useRouter } from "expo-router";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
-import RecipeList from "../components/recipeList"; // ✅ Import RecipeList
+import RecipeList from "../components/recipeList";
 
 const API_URL = Constants.expoConfig?.extra?.API_URL;
 
@@ -51,19 +52,31 @@ export default function HomeScreen() {
           "Authorization": `Bearer ${authToken}`,
         },
       });
-
+  
       const data = await response.json();
       if (response.status !== 200) {
         throw new Error(data.error || "Failed to fetch recipes");
       }
-
-      setRecipes(data.results);
+  
+      const uniqueRecipes = [];
+      const seenIds = new Set();
+  
+      for (const recipe of data.results) {
+        if (!seenIds.has(recipe.id)) {
+          seenIds.add(recipe.id);
+          uniqueRecipes.push(recipe);
+        }
+      }
+  
+      setRecipes(uniqueRecipes);
     } catch (error) {
       console.error("Error fetching random recipes:", error);
       Alert.alert("Error", "Failed to load recipes. Please try again.");
     }
     setLoading(false);
   };
+  
+
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -104,17 +117,21 @@ export default function HomeScreen() {
               onSubmitEditing={handleSearch}
             />
           </View>
-
+  
           <TouchableOpacity onPress={() => router.push("/preferencesScreen")} style={styles.settingsButton}>
             <Ionicons name="filter" size={34} color="black" />
           </TouchableOpacity>
         </View>
-
+  
+        {/* "Try It Out" Text (Just Text, No Button) */}
+        <Text style={styles.tryItOutText}>🍽️ Try Out Random Recipes Fit Your Preference</Text>
+  
         {/* Recipe List (Now in a separate file) */}
-        <RecipeList recipes={recipes} loading={loading} />
+        <RecipeList recipes={recipes} loading={loading} fetchRandomRecipes={() => fetchRandomRecipes(token)} />
       </View>
     </SafeAreaView>
   );
+  
 }
 
 // Styles
@@ -150,4 +167,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  tryItOutText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginVertical: 10, // ✅ Adds spacing below the search bar
+    color: "#333", // ✅ Dark gray text for better readability
+  }
 });
