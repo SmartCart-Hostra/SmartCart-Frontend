@@ -4,23 +4,21 @@ import {
   Text,
   Image,
   FlatList,
-  ScrollView,
   StyleSheet,
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_URL = Constants.expoConfig?.extra?.API_URL || "https://your-api-endpoint.com";
+const API_URL = Constants.expoConfig?.extra?.API_URL;
 
 export default function RecipeDetail() {
   const params = useLocalSearchParams();
   const recipe_id = params.recipe_id;
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     const fetchRecipeDetails = async () => {
@@ -33,7 +31,6 @@ export default function RecipeDetail() {
         const authToken = await AsyncStorage.getItem("authToken");
         if (!authToken) {
           Alert.alert("Error", "Authentication required. Please log in.");
-          router.push("/"); // Redirect to login if token is missing
           return;
         }
 
@@ -48,8 +45,7 @@ export default function RecipeDetail() {
         if (!response.ok) {
           const errorText = await response.text();
           console.error("🚨 API Error Response:", errorText);
-          Alert.alert("Error", `Failed to fetch recipe: ${response.status}`);
-          return;
+          throw new Error(`API returned ${response.status}: ${errorText}`);
         }
 
         const data = await response.json();
@@ -80,67 +76,57 @@ export default function RecipeDetail() {
     );
   }
 
-  // ✅ Ensure default values to prevent crashes
-  const ingredients = recipe.extendedIngredients || [];
-  const instructions = recipe.analyzedInstructions?.[0]?.steps || [];
-
   return (
-    <ScrollView style={styles.container}>
-      {/* Recipe Image & Title */}
-      <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
-      <Text style={styles.recipeTitle}>{recipe.title}</Text>
+    <FlatList
+      data={recipe.extendedIngredients}
+      keyExtractor={(item) => item.id.toString()}
+      ListHeaderComponent={
+        <>
+          {/* Recipe Image & Title */}
+          <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
+          <Text style={styles.recipeTitle}>{recipe.title}</Text>
 
-      {/* Meta Info */}
-      <Text style={styles.metaText}>❤️ {recipe.aggregateLikes} Likes</Text>
-      <Text style={styles.metaText}>⏳ {recipe.readyInMinutes} minutes</Text>
-      <Text style={styles.metaText}>🍽 {recipe.servings} servings</Text>
+          {/* Meta Info */}
+          <Text style={styles.metaText}>❤️ {recipe.aggregateLikes} Likes</Text>
+          <Text style={styles.metaText}>⏳ {recipe.readyInMinutes} minutes</Text>
+          <Text style={styles.metaText}>🍽 {recipe.servings} servings</Text>
 
-      {/* Ingredients List */}
-      <Text style={styles.sectionTitle}>Ingredients</Text>
-      <FlatList
-        data={ingredients}
-        keyExtractor={(item, index) => (item.id ? item.id.toString() : `ingredient-${index}`)}
-        scrollEnabled={false} // Prevents nested scroll issues
-        renderItem={({ item }) => (
-          <View style={styles.ingredientItem}>
-            <Image source={{ uri: `https://spoonacular.com/cdn/ingredients_100x100/${item.image}` }} style={styles.ingredientImage} />
-            <Text style={styles.ingredientText}>{item.original}</Text>
-          </View>
-        )}
-      />
-
-      {/* Step-by-Step Instructions */}
-      <Text style={styles.sectionTitle}>Instructions</Text>
-      {instructions.length > 0 ? (
-  instructions.map((step, index) => (
-    <View key={`step-${index}`} style={styles.stepContainer}>
-      <Text style={styles.stepNumber}>Step {step.number}</Text>
-      <Text style={styles.stepText}>{step.step}</Text>
-
-      <View style={styles.stepImagesContainer}>
-        {step.equipment?.length > 0 ? (
-          step.equipment.map((equipment, eqIndex) => (
-            <Image key={`equipment-${index}-${eqIndex}`} source={{ uri: equipment.image }} style={styles.stepImage} />
-          ))
-        ) : null}
-      </View>
-    </View>
-  ))
-) : (
-  <Text style={styles.noInstructionsText}>No instructions available.</Text>
-)}
-
-    </ScrollView>
+          {/* Ingredients Header */}
+          <Text style={styles.sectionTitle}>Ingredients</Text>
+        </>
+      }
+      renderItem={({ item }) => (
+        <View style={styles.ingredientItem}>
+          <Image source={{ uri: `https://spoonacular.com/cdn/ingredients_100x100/${item.image}` }} style={styles.ingredientImage} />
+          <Text style={styles.ingredientText}>{item.original}</Text>
+        </View>
+      )}
+      ListFooterComponent={
+        <>
+          <Text style={styles.sectionTitle}>Instructions</Text>
+          {recipe.analyzedInstructions.length > 0 ? (
+            recipe.analyzedInstructions[0].steps.map((step) => (
+              <View key={step.number} style={styles.stepContainer}>
+                <Text style={styles.stepNumber}>Step {step.number}</Text>
+                <Text style={styles.stepText}>{step.step}</Text>
+                <View style={styles.stepImagesContainer}>
+                  {step.equipment.map((equipment, index) => (
+                    <Image key={index} source={{ uri: equipment.image }} style={styles.stepImage} />
+                  ))}
+                </View>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.noInstructionsText}>No instructions available.</Text>
+          )}
+        </>
+      }
+    />
   );
 }
 
 // Styles
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8F3E6",
-    padding: 15,
-  },
   centered: {
     flex: 1,
     justifyContent: "center",
@@ -214,4 +200,3 @@ const styles = StyleSheet.create({
     color: "#777",
   },
 });
-

@@ -44,7 +44,7 @@ export default function RecipeList({ recipes, loading, fetchRandomRecipes }: { r
       ) : (
         <FlatList
           data={recipes}
-          keyExtractor={(item, index) => (item.id ? item.id.toString() : `recipe-${index}`)}
+          keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <TouchableOpacity style={styles.recipeCard} onPress={() => router.push(`/recipeDetail/${item.id}`)} >
 
