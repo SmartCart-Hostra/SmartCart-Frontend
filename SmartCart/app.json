@@ -41,7 +41,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "API_URL" : "http://10.26.202.101:12345"
+      "API_URL" : "http://10.26.158.50:12345"
     }
   }
 }
