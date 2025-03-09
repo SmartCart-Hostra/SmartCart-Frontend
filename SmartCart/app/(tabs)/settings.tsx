@@ -61,7 +61,7 @@ const AccountInfo = () => {
         console.error("Error saving username:", error);
       }
     };
-  
+
     return (
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account Information</Text>
@@ -75,8 +75,11 @@ const AccountInfo = () => {
       </View>
     );
   };
+
+  const handleSetPreference = () => {
+    router.push("/preferencesScreen");
+  };
   
-  // ✅ Change Password Component
   const ChangePassword = () => {
     const [password, setPassword] = useState("");
   
@@ -102,7 +105,7 @@ const AccountInfo = () => {
     );
   };
   
-  // ✅ Notifications Toggle Component
+
   const NotificationSettings = () => {
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   
@@ -117,7 +120,7 @@ const AccountInfo = () => {
     );
   };
   
-  // ✅ Security (2FA) Component
+
   const SecuritySettings = ({ router }) => {
     const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   
@@ -188,6 +191,11 @@ const AccountInfo = () => {
           <NotificationSettings />
           <SecuritySettings router={router} />
 
+          {/* Preferences Button */}
+        <TouchableOpacity style={styles.preferenceButton} onPress={handleSetPreference}>
+          <Text style={styles.buttonText}>Set Preferences</Text>
+        </TouchableOpacity>
+
           {/* Logout Button */}
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Text style={styles.logoutButtonText}>Log Out</Text>
@@ -222,4 +230,6 @@ const styles = StyleSheet.create({
 
   logoutButton: { backgroundColor: "red", padding: 15, borderRadius: 8, width: "100%", alignItems: "center", marginTop: 20 },
   logoutButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+
+  preferenceButton: { backgroundColor: "#28A745", padding: 15, borderRadius: 5, alignItems: "center", marginTop: 10, width: "100%"},
 });
