@@ -9,24 +9,31 @@ import {
   ActivityIndicator,
   Dimensions,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const screenWidth = Dimensions.get("window").width;
 
-export default function RecipeList({ recipes, loading, fetchRandomRecipes }: { recipes: any[]; loading: boolean; fetchRandomRecipes: () => void }) {
+export default function RecipeList({
+  recipes,
+  loading,
+  fetchRandomRecipes,
+}: {
+  recipes: any[];
+  loading: boolean;
+  fetchRandomRecipes: () => void;
+}) {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
-  const [token, setToken] = useState("");
 
-  // Handle pull-down refresh
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      const storedToken = await AsyncStorage.getItem("authToken"); // ✅ Wait for token
+      const storedToken = await AsyncStorage.getItem("authToken");
       if (storedToken) {
-        await fetchRandomRecipes(storedToken); // ✅ Pass token correctly
+        await fetchRandomRecipes(storedToken);
       } else {
         console.error("No token found, unable to refresh.");
       }
@@ -35,7 +42,25 @@ export default function RecipeList({ recipes, loading, fetchRandomRecipes }: { r
     }
     setRefreshing(false);
   }, [fetchRandomRecipes]);
-  
+
+  const addToCart = async (recipe: any) => {
+    try {
+      const existingCart = await AsyncStorage.getItem("cartRecipes");
+      const cartItems = existingCart ? JSON.parse(existingCart) : [];
+
+      const alreadyExists = cartItems.some((item: any) => item.id === recipe.id);
+      if (alreadyExists) {
+        Alert.alert("Already Added", "This recipe is already in your cart.");
+        return;
+      }
+
+      const updatedCart = [...cartItems, recipe];
+      await AsyncStorage.setItem("cartRecipes", JSON.stringify(updatedCart));
+      Alert.alert("Added", "Recipe added to cart!");
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -46,11 +71,21 @@ export default function RecipeList({ recipes, loading, fetchRandomRecipes }: { r
           data={recipes}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
-            <TouchableOpacity style={styles.recipeCard} onPress={() => router.push(`/recipeDetail/${item.id}`)} >
+            <View style={styles.recipeCard}>
+              <TouchableOpacity
+                onPress={() => router.push(`/recipeDetail/${item.id}`)}
+                style={styles.cardContent}
+              >
+                <Image source={{ uri: item.image }} style={styles.recipeImage} />
+                <Text style={styles.recipeTitle} numberOfLines={2}>
+                  {item.title}
+                </Text>
+              </TouchableOpacity>
 
-              <Image source={{ uri: item.image }} style={styles.recipeImage} />
-              <Text style={styles.recipeTitle} numberOfLines={2}>{item.title}</Text>
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.addButton} onPress={() => addToCart(item)}>
+                <Text style={styles.addButtonText}>➕ Add to Cart</Text>
+              </TouchableOpacity>
+            </View>
           )}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#007BFF"]} />
@@ -61,7 +96,7 @@ export default function RecipeList({ recipes, loading, fetchRandomRecipes }: { r
   );
 }
 
-// Styles for RecipeList
+// ✅ Updated Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -79,10 +114,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "center",
     elevation: 3,
-    //shadowColor: "#000",
-    //shadowOffset: { width: 0, height: 2 },
-    //shadowOpacity: 0.2,
-    //shadowRadius: 4,
+  },
+  cardContent: {
+    width: "100%",
+    alignItems: "center",
   },
   recipeImage: {
     width: "100%",
@@ -95,5 +130,19 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     marginTop: 8,
+    marginBottom: 10,
+    color: "#333",
+  },
+  addButton: {
+    backgroundColor: "#2D6A4F",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginTop: 5,
+  },
+  addButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 14,
   },
 });

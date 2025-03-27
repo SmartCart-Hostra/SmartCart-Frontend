@@ -49,25 +49,25 @@ export default function HomeScreen() {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${authToken}`,
+          Authorization: `Bearer ${authToken}`,
         },
       });
-  
+
       const data = await response.json();
       if (response.status !== 200) {
         throw new Error(data.error || "Failed to fetch recipes");
       }
-  
+
       const uniqueRecipes = [];
       const seenIds = new Set();
-  
+
       for (const recipe of data.results) {
         if (!seenIds.has(recipe.id)) {
           seenIds.add(recipe.id);
           uniqueRecipes.push(recipe);
         }
       }
-  
+
       setRecipes(uniqueRecipes);
     } catch (error) {
       console.error("Error fetching random recipes:", error);
@@ -75,8 +75,6 @@ export default function HomeScreen() {
     }
     setLoading(false);
   };
-  
-
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -86,7 +84,7 @@ export default function HomeScreen() {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -103,6 +101,25 @@ export default function HomeScreen() {
     setLoading(false);
   };
 
+  const addToCart = async (recipe: any) => {
+    try {
+      const storedCart = await AsyncStorage.getItem("cartRecipes");
+      const cart = storedCart ? JSON.parse(storedCart) : [];
+
+      const alreadyExists = cart.some((item: any) => item.id === recipe.id);
+      if (alreadyExists) {
+        Alert.alert("Info", "Recipe is already in your cart.");
+        return;
+      }
+
+      cart.push({ id: recipe.id, title: recipe.title, image: recipe.image });
+      await AsyncStorage.setItem("cartRecipes", JSON.stringify(cart));
+      Alert.alert("Added", "Recipe added to your cart.");
+    } catch (error) {
+      console.error("Add to cart error:", error);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -117,28 +134,45 @@ export default function HomeScreen() {
               onSubmitEditing={handleSearch}
             />
           </View>
-  
-          <TouchableOpacity onPress={() => router.push("/preferencesScreen")} style={styles.settingsButton}>
+
+          <TouchableOpacity
+            onPress={() => router.push("/preferencesScreen")}
+            style={styles.settingsButton}
+          >
             <Ionicons name="filter" size={34} color="black" />
           </TouchableOpacity>
         </View>
-  
-        {/* "Try It Out" Text (Just Text, No Button) */}
-        <Text style={styles.tryItOutText}>🍽️ Try Out Random Recipes Fit Your Preference</Text>
-  
-        {/* Recipe List (Now in a separate file) */}
-        <RecipeList recipes={recipes} loading={loading} fetchRandomRecipes={() => fetchRandomRecipes(token)} />
+
+        {/* "Try It Out" Text */}
+        <Text style={styles.tryItOutText}>
+          🍽️ Try Out Random Recipes Fit Your Preference
+        </Text>
+
+        {/* Recipe List */}
+        <RecipeList
+          recipes={recipes}
+          loading={loading}
+          fetchRandomRecipes={() => fetchRandomRecipes(token)}
+          onAddToCart={addToCart} // ✅ pass handler to RecipeList
+        />
+
+        {/* Floating Cart Button */}
+        <TouchableOpacity
+          style={styles.cartButton}
+          onPress={() => router.push("/(tabs)/cart")}
+        >
+          <Ionicons name="cart" size={30} color="white" />
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
-  
 }
 
 // Styles
 const styles = StyleSheet.create({
-  safeArea: { 
-    flex: 1, 
-    backgroundColor: "#F8F3E6" 
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F8F3E6",
   },
   container: {
     flex: 1,
@@ -171,7 +205,16 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     textAlign: "center",
-    marginVertical: 10, // ✅ Adds spacing below the search bar
-    color: "#333", // ✅ Dark gray text for better readability
-  }
+    marginVertical: 10,
+    color: "#333",
+  },
+  cartButton: {
+    position: "absolute",
+    bottom: 30,
+    right: 30,
+    backgroundColor: "#2D6A4F",
+    padding: 16,
+    borderRadius: 30,
+    elevation: 4,
+  },
 });
