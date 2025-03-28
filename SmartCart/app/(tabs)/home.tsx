@@ -16,10 +16,16 @@ import RecipeList from "../components/recipeList";
 
 const API_URL = Constants.expoConfig?.extra?.API_URL;
 
+interface Recipe {
+  id: number;
+  title: string;
+  image: string;
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [recipes, setRecipes] = useState([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState("");
 
@@ -80,7 +86,7 @@ export default function HomeScreen() {
     if (!searchQuery.trim()) return;
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/recipes?query=${searchQuery}&page=1&limit=10`, {
+      const response = await fetch(`${API_URL}/recipes?query=${encodeURIComponent(searchQuery)}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -93,7 +99,7 @@ export default function HomeScreen() {
         throw new Error(data.error || "Failed to fetch recipes");
       }
 
-      setRecipes(data.results);
+      setRecipes(data.results || []);
     } catch (error) {
       console.error("Error searching recipes:", error);
       Alert.alert("Error", "Failed to search recipes. Please try again.");
@@ -133,6 +139,15 @@ export default function HomeScreen() {
               onChangeText={setSearchQuery}
               onSubmitEditing={handleSearch}
             />
+            <TouchableOpacity 
+              style={styles.searchButton}
+              onPress={() => router.push({
+                pathname: "/recipeSearch",
+                params: { query: searchQuery }
+              })}
+            >
+              <Ionicons name="search" size={24} color="#007BFF" />
+            </TouchableOpacity>
           </View>
 
           <TouchableOpacity
@@ -186,15 +201,21 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   searchInput: {
-    width: "100%",
+    flex: 1,
     height: 40,
     borderWidth: 2,
     borderColor: "black",
     borderRadius: 20,
     paddingHorizontal: 15,
     backgroundColor: "#FFFFFF",
+  },
+  searchButton: {
+    marginLeft: 10,
+    padding: 8,
   },
   settingsButton: {
     width: 50,

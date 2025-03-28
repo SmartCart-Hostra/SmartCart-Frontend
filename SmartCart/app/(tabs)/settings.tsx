@@ -90,7 +90,10 @@ export default function SettingsScreen() {
     );
   };
 
-  // ✅ Change Password
+  const handleSetPreference = () => {
+    router.push("/preferencesScreen");
+  };
+
   const ChangePassword = () => {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -144,7 +147,6 @@ export default function SettingsScreen() {
     );
   };
 
-  // ✅ Toggle Notifications
   const NotificationSettings = () => {
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
@@ -159,24 +161,90 @@ export default function SettingsScreen() {
     );
   };
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>⚙️ Settings</Text>
-            <AccountInfo />
-            <ChangePassword />
-            <NotificationSettings />
+  const SecuritySettings = ({ router }) => {
+    const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+  
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Security</Text>
+        <View style={styles.toggleContainer}>
+          <Text style={styles.toggleText}>Enable 2FA</Text>
+          <Switch value={is2FAEnabled} onValueChange={setIs2FAEnabled} />
+        </View>
+        {is2FAEnabled && (
+          <TouchableOpacity style={styles.setupButton} onPress={() => router.push("/setup-2fa")}>
+            <Text style={styles.buttonText}>Setup 2FA</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+  
+  const handleLogout = async () => {
+      try {
+        const authToken = await AsyncStorage.getItem("authToken");
+    
+        if (!authToken) {
+          console.warn("No auth token found, skipping logout request.");
+        } else {
+          // ✅ Send POST request to /logout with token in Cookie header
+          const response = await fetch(`${API_URL}/logout`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Cookie": authToken, // ✅ Attach stored token in Cookie header
+            },
+            credentials: "include",
+          });
+    
+          if (response.status !== 200) {
+            console.warn("Logout request failed:", response.status);
+          }
+        }
+    
+        // ✅ Clear AsyncStorage (remove token and user data)
+        await AsyncStorage.removeItem("authToken");
+        //await AsyncStorage.removeItem("userEmail");
+        await AsyncStorage.removeItem("username");
+    
+        // ✅ Navigate back to login page
+        router.push("/");
+    
+        Alert.alert("Logged Out", "You have been logged out successfully.");
+      } catch (error) {
+        console.error("Logout error:", error);
+        Alert.alert("Error", "Failed to log out. Please try again.");
+      }
+    };
 
-            {/* ✅ Log Out Button */}
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Text style={styles.logoutButtonText}>🚪 Log Out</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <Text style={styles.title}>⚙️ Settings</Text>
+
+          <AccountInfo />
+          <ChangePassword />
+          <NotificationSettings />
+          <SecuritySettings router={router} />
+
+          {/* Preferences Button */}
+        <TouchableOpacity style={styles.preferenceButton} onPress={handleSetPreference}>
+          <Text style={styles.buttonText}>Set Preferences</Text>
+        </TouchableOpacity>
+
+          {/* Logout Button */}
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>Log Out</Text>
+        </TouchableOpacity>
+
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
+
   );
 }
 
@@ -218,5 +286,7 @@ const styles = StyleSheet.create({
 
   logoutButton: { backgroundColor: "red", padding: 15, borderRadius: 25, width: "100%", alignItems: "center", marginTop: 20 },
   logoutButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+
+  preferenceButton: { backgroundColor: "#28A745", padding: 15, borderRadius: 5, alignItems: "center", marginTop: 10, width: "100%"},
 });
 
