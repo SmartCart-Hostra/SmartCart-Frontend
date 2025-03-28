@@ -9,10 +9,10 @@ import {
   ActivityIndicator,
   Dimensions,
   RefreshControl,
-  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import AddToCart from "./add_cart";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -31,36 +31,12 @@ export default function RecipeList({
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      const storedToken = await AsyncStorage.getItem("authToken");
-      if (storedToken) {
-        await fetchRandomRecipes(storedToken);
-      } else {
-        console.error("No token found, unable to refresh.");
-      }
+      await fetchRandomRecipes();
     } catch (error) {
-      console.error("Error fetching token for refresh:", error);
+      console.error("Error refreshing recipes:", error);
     }
     setRefreshing(false);
   }, [fetchRandomRecipes]);
-
-  const addToCart = async (recipe: any) => {
-    try {
-      const existingCart = await AsyncStorage.getItem("cartRecipes");
-      const cartItems = existingCart ? JSON.parse(existingCart) : [];
-
-      const alreadyExists = cartItems.some((item: any) => item.id === recipe.id);
-      if (alreadyExists) {
-        Alert.alert("Already Added", "This recipe is already in your cart.");
-        return;
-      }
-
-      const updatedCart = [...cartItems, recipe];
-      await AsyncStorage.setItem("cartRecipes", JSON.stringify(updatedCart));
-      Alert.alert("Added", "Recipe added to cart!");
-    } catch (error) {
-      console.error("Error adding to cart:", error);
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -82,9 +58,7 @@ export default function RecipeList({
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.addButton} onPress={() => addToCart(item)}>
-                <Text style={styles.addButtonText}>➕ Add to Cart</Text>
-              </TouchableOpacity>
+              <AddToCart recipe={item} />
             </View>
           )}
           refreshControl={
@@ -132,17 +106,5 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 10,
     color: "#333",
-  },
-  addButton: {
-    backgroundColor: "#2D6A4F",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginTop: 5,
-  },
-  addButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 14,
   },
 });

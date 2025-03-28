@@ -6,6 +6,8 @@ import {
   StyleSheet,
   Text,
   Alert,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -127,59 +129,63 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        {/* Top Bar */}
-        <View style={styles.topBar}>
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search Recipes..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              onSubmitEditing={handleSearch}
-            />
-            <TouchableOpacity 
-              style={styles.searchButton}
-              onPress={() => router.push({
-                pathname: "/recipeSearch",
-                params: { query: searchQuery }
-              })}
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          {/* Top Bar */}
+          <View style={styles.topBar}>
+            <View style={styles.searchContainer}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search Recipes..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmitEditing={() => router.push({
+                  pathname: "/recipeSearch",
+                  params: { query: searchQuery }
+                })}
+              />
+              <TouchableOpacity 
+                style={styles.searchButton}
+                onPress={() => router.push({
+                  pathname: "/recipeSearch",
+                  params: { query: searchQuery }
+                })}
+              >
+                <Ionicons name="search" size={24} color="#007BFF" />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => router.push("/preferencesScreen")}
+              style={styles.settingsButton}
             >
-              <Ionicons name="search" size={24} color="#007BFF" />
+              <Ionicons name="filter" size={34} color="black" />
             </TouchableOpacity>
           </View>
 
+          {/* "Try It Out" Text */}
+          <Text style={styles.tryItOutText}>
+            🍽️ Try Out Random Recipes Fit Your Preference
+          </Text>
+
+          {/* Recipe List */}
+          <RecipeList
+            recipes={recipes}
+            loading={loading}
+            fetchRandomRecipes={() => fetchRandomRecipes(token)}
+          />
+
+          {/* Floating Cart Button */}
           <TouchableOpacity
-            onPress={() => router.push("/preferencesScreen")}
-            style={styles.settingsButton}
+            style={styles.cartButton}
+            onPress={() => router.push("/(tabs)/cart")}
           >
-            <Ionicons name="filter" size={34} color="black" />
+            <Ionicons name="cart" size={30} color="white" />
           </TouchableOpacity>
         </View>
-
-        {/* "Try It Out" Text */}
-        <Text style={styles.tryItOutText}>
-          🍽️ Try Out Random Recipes Fit Your Preference
-        </Text>
-
-        {/* Recipe List */}
-        <RecipeList
-          recipes={recipes}
-          loading={loading}
-          fetchRandomRecipes={() => fetchRandomRecipes(token)}
-          onAddToCart={addToCart} // ✅ pass handler to RecipeList
-        />
-
-        {/* Floating Cart Button */}
-        <TouchableOpacity
-          style={styles.cartButton}
-          onPress={() => router.push("/(tabs)/cart")}
-        >
-          <Ionicons name="cart" size={30} color="white" />
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </TouchableWithoutFeedback>
   );
 }
 

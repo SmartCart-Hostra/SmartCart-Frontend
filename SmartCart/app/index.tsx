@@ -26,51 +26,101 @@ const LoginScreen = () => {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false); // UI Only (No AsyncStorage effect)
+  const [loading, setLoading] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
 
-  // ✅ Handle Login
+  // ✅ Auto-check stored token on app launch
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const storedEmail = await AsyncStorage.getItem("userEmail");
+        const storedToken = await AsyncStorage.getItem("authToken");
+
+        console.log("Stored Email:", storedEmail);  // ✅ Debugging
+        console.log("Stored Token:", storedToken);  // ✅ Debugging
+
+        if (storedEmail) setEmail(storedEmail); // ✅ Pre-fill email if stored
+
+        if (storedToken) {
+          console.log("Checking stored token...");
+
+          // ✅ Send request with correct JWT Authorization header
+          const response = await fetch(`${API_URL}/protected`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${storedToken}`,  // ✅ Fixed token header
+            },
+          });
+
+          console.log("Response Status:", response.status);  // ✅ Debugging
+
+          if (response.status === 200) {
+            const data = await response.json();
+            console.log("Token is valid, redirecting to dashboard:", data.message);
+            router.push("/dashboard"); // ✅ Navigate to dashboard if valid
+            return;
+          } else {
+            console.log("Invalid token, staying on login page.");
+            await AsyncStorage.removeItem("authToken"); // ✅ Clear invalid token
+          }
+        } else {
+          console.log("No stored token found.");
+        }
+      } catch (error) {
+        console.error("Error checking auth status:", error);
+      }
+      setLoading(false); // ✅ Hide loading after check is done
+    };
+
+    checkAuthStatus();
+  }, []);
+
+  // ✅ Handle manual login
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Error", "Please enter both email and password.");
       return;
     }
-  
-    console.log("🚀 Sending login request:", { email, password });
-    setIsLoggingIn(true);
-  
+
+    setLoading(true);
+
     try {
       const response = await fetch(`${API_URL}/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ email, password }),
       });
-  
+
       const data = await response.json();
-      console.log("📩 Response Data:", data);
-  
-      if (response.status === 200) {
-        // ✅ Always store email before moving to 2FA (Fixes "Email Not Found" Error)
+      console.log("Login response:", data); // Add debug logging
+
+      if (response.status === 200) { // Only check status for 2FA flow
+        console.log("Login successful, storing data..."); // Add debug logging
         await AsyncStorage.setItem("userEmail", email);
-  
-        // ✅ Store authentication token
-        if (data.token) {
-          await AsyncStorage.setItem("authToken", data.token);
-        }
-  
-        Alert.alert("✅ Success", "Please check your email for 2FA code.");
-        router.push("/setup-2fa"); // ✅ Ensures email is passed correctly
+        console.log("Data stored, navigating to 2FA..."); // Add debug logging
+        Alert.alert("Success", "Please check your email for 2FA code.");
+        router.push("/setup-2fa");
       } else {
-        Alert.alert("🚫 Login Failed", data.message || "Invalid credentials.");
+        Alert.alert("Login Failed", data.message || "Invalid credentials.");
       }
     } catch (error) {
-      console.error("🔥 Login error:", error);
-      Alert.alert("⚠️ Error", "Something went wrong. Please try again.");
+      Alert.alert("Error", "Something went wrong.");
+      console.error("Login error:", error);
     }
-  
-    setIsLoggingIn(false);
+
+    setLoading(false);
   };
-  
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007BFF" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -114,8 +164,8 @@ const LoginScreen = () => {
               <Switch value={rememberMe} onValueChange={setRememberMe} />
             </View>
 
-            <TouchableOpacity style={[styles.button, isLoggingIn && styles.disabledButton]} onPress={handleLogin} disabled={isLoggingIn}>
-              {isLoggingIn ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Log In</Text>}
+            <TouchableOpacity style={[styles.button, loading && styles.disabledButton]} onPress={handleLogin} disabled={loading}>
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Log In</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => router.push("/signup")}>
@@ -167,5 +217,5 @@ const styles = StyleSheet.create({
   linkText: { color: "#2D6A4F", fontSize: 14, marginTop: 15 },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
 });
-
 export default LoginScreen;
+
