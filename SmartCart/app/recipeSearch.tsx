@@ -48,6 +48,42 @@ export default function RecipeSearchScreen() {
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const rotateAnim = new Animated.Value(0);
 
+  // First useEffect to load token
+  useEffect(() => {
+    const loadTokenAndSearch = async () => {
+      try {
+        const storedToken = await AsyncStorage.getItem("authToken");
+        if (!storedToken) {
+          Alert.alert("Error", "Authentication required. Please log in.");
+          router.push("/");
+          return;
+        }
+        // Set token first
+        setToken(storedToken);
+        
+        // If we have a query, trigger search after token is set
+        if (query) {
+          setSearchQuery(query);
+          // Use a longer timeout to ensure token state is updated
+          setTimeout(() => {
+            handleSearch();
+          }, 100);
+        }
+      } catch (error) {
+        console.error("Error loading token:", error);
+      }
+    };
+
+    loadTokenAndSearch();
+  }, [query]);
+
+  // Add a separate effect to handle search when token changes
+  useEffect(() => {
+    if (token && query) {
+      handleSearch();
+    }
+  }, [token]);
+
   // Animation for filter icon rotation
   useEffect(() => {
     Animated.timing(rotateAnim, {
@@ -61,25 +97,6 @@ export default function RecipeSearchScreen() {
     inputRange: [0, 1],
     outputRange: ['0deg', '180deg'],
   });
-
-  // First useEffect to load token
-  useEffect(() => {
-    const loadToken = async () => {
-      try {
-        const storedToken = await AsyncStorage.getItem("authToken");
-        if (!storedToken) {
-          Alert.alert("Error", "Authentication required. Please log in.");
-          router.push("/");
-          return;
-        }
-        setToken(storedToken);
-      } catch (error) {
-        console.error("Error loading token:", error);
-      }
-    };
-
-    loadToken();
-  }, []);
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) {
