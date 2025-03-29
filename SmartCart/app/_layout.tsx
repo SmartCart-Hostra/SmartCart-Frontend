@@ -34,6 +34,7 @@ export default function RootLayout() {
         <Stack.Screen name="settings" options={{ title: 'Settings' }} />
         <Stack.Screen name="setup-2fa" options={{ title: 'Setup 2FA' }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="recipeDetail/[recipe_id]" options={{ title: "Recipe Detail" }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

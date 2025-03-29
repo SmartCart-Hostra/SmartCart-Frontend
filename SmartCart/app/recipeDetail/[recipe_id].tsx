@@ -7,18 +7,43 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  TouchableOpacity,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const API_URL = Constants.expoConfig?.extra?.API_URL;
 
+// Type Definitions
+type EquipmentType = {
+  image: string;
+};
+
+type StepType = {
+  number: number;
+  step: string;
+  equipment: EquipmentType[];
+};
+
+type RecipeType = {
+  id: string;
+  title: string;
+  image: string;
+  aggregateLikes: number;
+  readyInMinutes: number;
+  servings: number;
+  extendedIngredients: { id: number; original: string; image: string }[];
+  analyzedInstructions: { steps: StepType[] }[];
+};
+
 export default function RecipeDetail() {
   const params = useLocalSearchParams();
-  const recipe_id = params.recipe_id;
-  const [recipe, setRecipe] = useState(null);
+  const recipe_id = params.recipe_id as string;
+  const [recipe, setRecipe] = useState<RecipeType | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isFavorited, setIsFavorited] = useState(false);
 
   useEffect(() => {
     const fetchRecipeDetails = async () => {
@@ -38,7 +63,7 @@ export default function RecipeDetail() {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${authToken}`,
+            Authorization: `Bearer ${authToken}`,
           },
         });
 
@@ -48,8 +73,11 @@ export default function RecipeDetail() {
           throw new Error(`API returned ${response.status}: ${errorText}`);
         }
 
-        const data = await response.json();
+        const data: RecipeType = await response.json();
         setRecipe(data);
+
+        const saved = JSON.parse((await AsyncStorage.getItem("savedRecipes")) ?? "[]");
+        setIsFavorited(saved.some((r: RecipeType) => r.id === data.id));
       } catch (error) {
         console.error("🚨 Error fetching recipe details:", error);
         Alert.alert("Error", "Failed to load recipe details. Please try again.");
@@ -59,6 +87,19 @@ export default function RecipeDetail() {
 
     fetchRecipeDetails();
   }, [recipe_id]);
+
+  const toggleFavorite = async () => {
+    let savedRecipes: RecipeType[] = JSON.parse((await AsyncStorage.getItem("savedRecipes")) ?? "[]");
+
+    if (isFavorited) {
+      savedRecipes = savedRecipes.filter((r) => r.id !== recipe?.id);
+    } else {
+      if (recipe) savedRecipes.push(recipe);
+    }
+
+    await AsyncStorage.setItem("savedRecipes", JSON.stringify(savedRecipes));
+    setIsFavorited(!isFavorited);
+  };
 
   if (loading) {
     return (
@@ -79,25 +120,28 @@ export default function RecipeDetail() {
   return (
     <FlatList
       data={recipe.extendedIngredients}
-      keyExtractor={(item) => item.id.toString()}
+      keyExtractor={(item) => String(item.id)}
       ListHeaderComponent={
         <>
-          {/* Recipe Image & Title */}
           <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
+          <TouchableOpacity onPress={toggleFavorite} style={styles.heartButtonCentered}>
+            <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={30} color="red" />
+          </TouchableOpacity>
           <Text style={styles.recipeTitle}>{recipe.title}</Text>
 
-          {/* Meta Info */}
           <Text style={styles.metaText}>❤️ {recipe.aggregateLikes} Likes</Text>
           <Text style={styles.metaText}>⏳ {recipe.readyInMinutes} minutes</Text>
           <Text style={styles.metaText}>🍽 {recipe.servings} servings</Text>
 
-          {/* Ingredients Header */}
           <Text style={styles.sectionTitle}>Ingredients</Text>
         </>
       }
       renderItem={({ item }) => (
         <View style={styles.ingredientItem}>
-          <Image source={{ uri: `https://spoonacular.com/cdn/ingredients_100x100/${item.image}` }} style={styles.ingredientImage} />
+          <Image
+            source={{ uri: `https://spoonacular.com/cdn/ingredients_100x100/${item.image}` }}
+            style={styles.ingredientImage}
+          />
           <Text style={styles.ingredientText}>{item.original}</Text>
         </View>
       )}
@@ -111,7 +155,11 @@ export default function RecipeDetail() {
                 <Text style={styles.stepText}>{step.step}</Text>
                 <View style={styles.stepImagesContainer}>
                   {step.equipment.map((equipment, index) => (
-                    <Image key={index} source={{ uri: equipment.image }} style={styles.stepImage} />
+                    <Image
+                      key={index}
+                      source={{ uri: `https://spoonacular.com/cdn/equipment_100x100/${equipment.image}` }}
+                      style={styles.stepImage}
+                    />
                   ))}
                 </View>
               </View>
@@ -125,7 +173,7 @@ export default function RecipeDetail() {
   );
 }
 
-// Styles
+
 const styles = StyleSheet.create({
   centered: {
     flex: 1,
@@ -140,6 +188,10 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 250,
     borderRadius: 10,
+    marginBottom: 10,
+  },
+  heartButtonCentered: {
+    alignSelf: "center",
     marginBottom: 10,
   },
   recipeTitle: {
@@ -158,11 +210,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     marginVertical: 10,
+    marginLeft: 10,
   },
   ingredientItem: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 8,
+    marginLeft: 10,
   },
   ingredientImage: {
     width: 50,
@@ -175,6 +229,7 @@ const styles = StyleSheet.create({
   },
   stepContainer: {
     marginBottom: 15,
+    paddingHorizontal: 15,
   },
   stepNumber: {
     fontSize: 18,
