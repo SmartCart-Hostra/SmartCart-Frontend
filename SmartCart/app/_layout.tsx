@@ -36,14 +36,19 @@ export default function RootLayout() {
     <>
       <Stack screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
-          // 👇 Authenticated: show tabs
-          <Stack.Screen name="(tabs)" />
-        ) : (
-          // 👇 Not logged in: show login/signup/etc
           <>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="signup" />
-            <Stack.Screen name="setup-2fa" />
+            {/* Authenticated: main app flow */}
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            {/* Optionally, include extra authenticated screens */}
+            <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+            <Stack.Screen name="recipeDetail/[recipe_id]" options={{ title: "Recipe Detail" }} />
+          </>
+        ) : (
+          <>
+            {/* Not authenticated: login/signup flow */}
+            <Stack.Screen name="index" options={{ title: 'Login' }} />
+            <Stack.Screen name="signup" options={{ title: 'Signup' }} />
+            <Stack.Screen name="setup-2fa" options={{ title: 'Setup 2FA' }} />
           </>
         )}
       </Stack>

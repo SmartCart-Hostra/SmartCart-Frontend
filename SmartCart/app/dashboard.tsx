@@ -2,8 +2,8 @@ import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import HomeScreen from "./(tabs)/home";  // ✅ Import from (tabs)
-import ProfileScreen from "./(tabs)/profile";  // ✅ Import from (tabs)
 import SettingsScreen from "./(tabs)/settings";  // ✅ Import from (tabs)
+import SavedRecipesScreen from "./(tabs)/savedRecipesScreen";  // ✅ Import saved recipes
 
 const Tab = createBottomTabNavigator();
 
@@ -11,31 +11,30 @@ export default function Dashboard() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false, // 🚀 Hides the top bar
+        headerShown: false, 
         tabBarStyle: {
-          backgroundColor: "#F8F3E6", // ✅ Set tab bar background color
-          borderTopWidth: 0, // Remove top border for a clean look
-          elevation: 0, // Remove Android shadow
+          backgroundColor: "#F8F3E6",
+          borderTopWidth: 0,
+          elevation: 0,
         },
         tabBarIcon: ({ color, size }) => {
-          let iconName;
+          const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
+            Home: "home",
+            Profile: "person",
+            "Saved Recipes": "heart",
+            Settings: "settings",
+          };
 
-          if (route.name === "Home") {
-            iconName = "home";
-          } else if (route.name === "Profile") {
-            iconName = "person";
-          } else if (route.name === "Settings") {
-            iconName = "settings";
-          }
+          const iconName = iconMap[route.name] || "help-circle"; // ✅ Default fallback icon
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: "#007BFF", // Active tab color
-        tabBarInactiveTintColor: "gray", // Inactive tab color
+        tabBarActiveTintColor: "#007BFF",
+        tabBarInactiveTintColor: "gray",
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Saved Recipes" component={SavedRecipesScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );
