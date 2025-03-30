@@ -215,14 +215,13 @@ export default function CartScreen() {
   };
 
   const calculateItemTotalPrice = (item: CartItem) => {
-    const activeIngredients = item.krogerIngredients.filter(ing => 
-      item.ingredientQuantities[ing.name] > 0
-    );
-    if (activeIngredients.length === 0) return 0;
-    
-    return item.totalPrice * Object.values(item.ingredientQuantities)
-      .filter(qty => qty > 0)
-      .reduce((a, b) => a + b, 0) / activeIngredients.length;
+    return item.krogerIngredients.reduce((total, ingredient) => {
+      const quantity = item.ingredientQuantities[ingredient.name] || 0;
+      if (quantity === 0) return total;
+      
+      const price = ingredient.items[0]?.price.regular || 0;
+      return total + (price * quantity);
+    }, 0);
   };
 
   const renderKrogerIngredients = (item: CartItem) => (
