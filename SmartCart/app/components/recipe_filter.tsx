@@ -5,12 +5,12 @@ import { Ionicons } from '@expo/vector-icons';
 interface RecipeFilterProps {
   onFilterChange: (filters: {
     price_range?: string;
-    time_range?: string;
+    max_ready_time?: number;
     meal_type?: string;
   }) => void;
   currentFilters: {
     price_range?: string;
-    time_range?: string;
+    max_ready_time?: number;
     meal_type?: string;
   };
 }
@@ -22,70 +22,70 @@ const RecipeFilter: React.FC<RecipeFilterProps> = ({ onFilterChange, currentFilt
     { id: 'expensive', label: 'Premium', icon: 'diamond-outline' },
   ];
 
-  const timeRanges = [
-    { id: 'quick', label: 'Quick (<15min)', icon: 'flash-outline' },
-    { id: 'medium', label: 'Medium (15-30min)', icon: 'time-outline' },
-    { id: 'long', label: 'Long (>30min)', icon: 'hourglass-outline' },
+  const timeOptions = [
+    { id: 'quick', label: 'Quick (<15m)', icon: 'flash-outline' },
+    { id: 'medium', label: 'Medium (15–30m)', icon: 'time-outline' },
+    { id: 'long', label: 'Long (>30m)', icon: 'hourglass-outline' },
   ];
-
+  
   const mealTypes = [
+    { id: 'breakfast', label: 'Breakfast', icon: 'sunny-outline' },
+    { id: 'main course', label: 'Lunch', icon: 'time-outline' },
+    { id: 'main course', label: 'Dinner', icon: 'moon-outline' },
     { id: 'main course', label: 'Main Course', icon: 'restaurant-outline' },
     { id: 'appetizer', label: 'Appetizer', icon: 'pizza-outline' },
     { id: 'dessert', label: 'Dessert', icon: 'ice-cream-outline' },
-    { id: 'breakfast', label: 'Breakfast', icon: 'sunny-outline' },
-    { id: 'lunch', label: 'Lunch', icon: 'time-outline' },
-    { id: 'dinner', label: 'Dinner', icon: 'moon-outline' },
   ];
 
-  const handleFilterPress = (filterKey: 'price_range' | 'time_range' | 'meal_type', itemId: string) => {
-    // If the current filter is already selected, deselect it
+  const handleFilterPress = (
+    filterKey: 'price_range' | 'time_range' | 'meal_type',
+    itemId: string | number
+  ) => {
     if (currentFilters[filterKey] === itemId) {
       onFilterChange({
         ...currentFilters,
         [filterKey]: undefined,
       });
-      return;
+    } else {
+      onFilterChange({
+        ...currentFilters,
+        [filterKey]: itemId,
+      });
     }
-
-    // Otherwise, select the new filter
-    onFilterChange({
-      ...currentFilters,
-      [filterKey]: itemId,
-    });
   };
 
-  const FilterSection = ({ title, items, filterKey }: { 
-    title: string; 
-    items: Array<{ id: string; label: string; icon: string }>;
-    filterKey: 'price_range' | 'time_range' | 'meal_type';
+  const FilterSection = ({
+    title,
+    items,
+    filterKey,
+  }: {
+    title: string;
+    items: Array<{ id: string | number; label: string; icon: string }>;
+    filterKey: 'price_range' | 'max_ready_time' | 'meal_type';
   }) => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-        {items.map((item) => (
-          <TouchableOpacity
-            key={item.id}
-            style={[
-              styles.filterButton,
-              currentFilters[filterKey] === item.id && styles.filterButtonActive,
-            ]}
-            onPress={() => handleFilterPress(filterKey, item.id)}
-          >
-            <Ionicons
-              name={item.icon as any}
-              size={20}
-              color={currentFilters[filterKey] === item.id ? '#fff' : '#666'}
-            />
-            <Text
-              style={[
-                styles.filterButtonText,
-                currentFilters[filterKey] === item.id && styles.filterButtonTextActive,
-              ]}
+        {items.map((item, index) => {
+          const isActive = currentFilters[filterKey] === item.id;
+
+          return (
+            <TouchableOpacity
+              key={`${item.id}-${index}`}
+              style={[styles.filterButton, isActive && styles.filterButtonActive]}
+              onPress={() => handleFilterPress(filterKey, item.id)}
             >
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Ionicons
+                name={item.icon as any}
+                size={20}
+                color={isActive ? '#fff' : '#666'}
+              />
+              <Text style={[styles.filterButtonText, isActive && styles.filterButtonTextActive]}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -93,7 +93,7 @@ const RecipeFilter: React.FC<RecipeFilterProps> = ({ onFilterChange, currentFilt
   return (
     <View style={styles.container}>
       <FilterSection title="Price Range" items={priceRanges} filterKey="price_range" />
-      <FilterSection title="Time Range" items={timeRanges} filterKey="time_range" />
+      <FilterSection title="Time Range" items={timeOptions} filterKey="time_range" />
       <FilterSection title="Meal Type" items={mealTypes} filterKey="meal_type" />
     </View>
   );
@@ -106,10 +106,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
@@ -148,4 +145,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default RecipeFilter; 
+export default RecipeFilter;
