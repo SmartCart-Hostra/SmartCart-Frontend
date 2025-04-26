@@ -232,7 +232,14 @@ export default function CartScreen() {
         
         return (
           <View key={index} style={styles.ingredientItem}>
-            <View style={styles.ingredientMainContent}>
+            <TouchableOpacity 
+              style={styles.ingredientMainContent}
+              onPress={() => {
+                if (ingredient.productId) {
+                  router.push(`/productDetail/${ingredient.productId}`);
+                }
+              }}
+            >
               <Text style={styles.ingredientName}>{ingredient.description || ingredient.name}</Text>
               <Text style={styles.ingredientDetails}>
                 {ingredient.brand} - {ingredient.items[0]?.size || 'N/A'}
@@ -240,7 +247,7 @@ export default function CartScreen() {
               <Text style={styles.ingredientPrice}>
                 ${(ingredient.items[0]?.price.regular * quantity).toFixed(2)}
               </Text>
-            </View>
+            </TouchableOpacity>
             <View style={styles.quantityControls}>
               <TouchableOpacity 
                 onPress={() => updateIngredientQuantity(item.recipe.id, ingredient.name, -1)}

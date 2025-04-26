@@ -43,6 +43,8 @@ interface CartItem {
   recipe: Recipe;
   krogerIngredients: KrogerIngredient[];
   totalPrice: number;
+  selected: boolean;
+  ingredientQuantities: Record<string, number>;
 }
 
 export default function AddToCart({ recipe }: { recipe: Recipe }) {
@@ -89,6 +91,10 @@ export default function AddToCart({ recipe }: { recipe: Recipe }) {
         recipe,
         krogerIngredients,
         totalPrice,
+        selected: true,
+        ingredientQuantities: Object.fromEntries(
+          krogerIngredients.map((ing: KrogerIngredient) => [ing.name, 1])
+        )
       };
 
       cart.push(newCartItem);
