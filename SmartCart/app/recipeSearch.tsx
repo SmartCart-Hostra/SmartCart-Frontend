@@ -1,3 +1,4 @@
+// ✅ RECIPE SEARCH SCREEN W/ SMART RECOMMENDATIONS
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
@@ -28,6 +29,7 @@ interface Recipe {
   id: number;
   title: string;
   image: string;
+  match_score?: number; // for smart feed
 }
 
 interface Filters {
@@ -39,6 +41,7 @@ interface Filters {
 export default function RecipeSearchScreen() {
   const router = useRouter();
   const { query } = useLocalSearchParams<{ query: string }>();
+
   const [searchQuery, setSearchQuery] = useState(query || "");
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,7 +51,81 @@ export default function RecipeSearchScreen() {
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const rotateAnim = new Animated.Value(0);
 
+<<<<<<< Updated upstream
   // Animation for filter icon rotation
+=======
+  // ✅ Smart Recommendations
+  const [smartRecommendations, setSmartRecommendations] = useState<Recipe[]>([]);
+  const [loadingSmart, setLoadingSmart] = useState(true);
+  const [showSmartPrompt, setShowSmartPrompt] = useState(false);
+
+  useEffect(() => {
+    const loadTokenAndSearch = async () => {
+      try {
+        const storedToken = await AsyncStorage.getItem("authToken");
+        if (!storedToken) {
+          Alert.alert("Error", "Authentication required. Please log in.");
+          router.push("/");
+          return;
+        }
+        setToken(storedToken);
+
+        if (query) {
+          setSearchQuery(query);
+          setTimeout(() => {
+            handleSearch();
+          }, 100);
+        }
+      } catch (error) {
+        console.error("Error loading token:", error);
+      }
+    };
+
+    loadTokenAndSearch();
+  }, [query]);
+
+  useEffect(() => {
+    if (token && query) {
+      handleSearch();
+    }
+  }, [token]);
+
+  // ✅ Smart Recs loader
+  useEffect(() => {
+    const fetchSmartFeed = async () => {
+      try {
+        const stored = await AsyncStorage.getItem("savedRecipes");
+        const parsed = stored ? JSON.parse(stored) : [];
+
+        const response = await fetch(`${API_URL}/smartfeed`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          credentials: "include",
+          body: JSON.stringify({ savedRecipes: parsed }),
+        });
+
+        const data = await response.json();
+
+        if (data.showSmartRecommendations) {
+          setSmartRecommendations(data.smartRecommendations);
+          setShowSmartPrompt(false);
+        } else {
+          setShowSmartPrompt(true);
+        }
+      } catch (error) {
+        console.error("Error fetching smart recommendations:", error);
+      } finally {
+        setLoadingSmart(false);
+      }
+    };
+
+    fetchSmartFeed();
+  }, [token]);
+
+>>>>>>> Stashed changes
   useEffect(() => {
     Animated.timing(rotateAnim, {
       toValue: isFilterVisible ? 1 : 0,
@@ -82,33 +159,20 @@ export default function RecipeSearchScreen() {
   }, []);
 
   const handleSearch = useCallback(async () => {
-    if (!searchQuery.trim()) {
-      console.log('Search skipped: No query');
-      return;
-    }
-
-    if (!token) {
-      console.log('Search skipped: No token');
-      return;
-    }
+    if (!searchQuery.trim()) return;
+    if (!token) return;
 
     setLoading(true);
     try {
-      console.log('Searching with query:', searchQuery);
-      console.log('Using API URL:', API_URL);
-      console.log('Using token:', token);
-      
-      // Build query parameters
       const queryParams = new URLSearchParams({
         query: searchQuery,
         ...(filters.price_range && { price_range: filters.price_range }),
         ...(filters.time_range && { time_range: filters.time_range }),
         ...(filters.meal_type && { meal_type: filters.meal_type }),
       });
-      
+
       const url = `${API_URL}/recipes?${queryParams.toString()}`;
-      console.log('Full URL:', url);
-      
+
       const response = await fetch(url, {
         method: "GET",
         headers: {
@@ -117,13 +181,8 @@ export default function RecipeSearchScreen() {
         },
       });
 
-      console.log('Response status:', response.status);
       const data = await response.json();
-      console.log('Response data:', data);
-
-      if (response.status !== 200) {
-        throw new Error(data.error || "Failed to fetch recipes");
-      }
+      if (response.status !== 200) throw new Error(data.error || "Failed to fetch recipes");
 
       setRecipes(data.results || []);
     } catch (error) {
@@ -151,6 +210,11 @@ export default function RecipeSearchScreen() {
       >
         <Image source={{ uri: item.image }} style={styles.recipeImage} />
         <Text style={styles.recipeTitle} numberOfLines={2}>{item.title}</Text>
+        {item.match_score !== undefined && (
+          <Text style={{ paddingLeft: 12, color: "#888" }}>
+            💡 Match Score: {item.match_score}%
+          </Text>
+        )}
       </TouchableOpacity>
       <View style={styles.addToCartContainer}>
         <AddToCart recipe={item} />
@@ -188,7 +252,6 @@ export default function RecipeSearchScreen() {
           </View>
         </View>
 
-        {/* Recipe Filters */}
         {isFilterVisible && (
           <RecipeFilter
             currentFilters={filters}
@@ -196,7 +259,29 @@ export default function RecipeSearchScreen() {
           />
         )}
 
-        {/* Recipe List */}
+        {/* ✨ Smart Recommendations */}
+        {loadingSmart ? (
+          <ActivityIndicator size="small" color="#888" />
+        ) : showSmartPrompt ? (
+          <View style={{ padding: 16 }}>
+            <Text>🚀 Save at least 3 recipes to unlock Smart Recommendations!</Text>
+          </View>
+        ) : (
+          <View style={{ padding: 16 }}>
+            <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 8 }}>
+              ✨ Smart Recommendations
+            </Text>
+            <FlatList
+              horizontal
+              data={smartRecommendations}
+              keyExtractor={(item) => item.id?.toString() ?? item.title}
+              renderItem={renderRecipeItem}
+              showsHorizontalScrollIndicator={false}
+            />
+          </View>
+        )}
+
+        {/* Regular Recipes */}
         {loading ? (
           <ActivityIndicator size="large" color="#007BFF" style={styles.loader} />
         ) : (
@@ -263,16 +348,15 @@ const styles = StyleSheet.create({
   recipeCard: {
     backgroundColor: "#fff",
     borderRadius: 15,
+    marginRight: 15,
     marginBottom: 15,
     overflow: "hidden",
     elevation: 3,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    width: 240
   },
   recipeContent: {
     width: "100%",
@@ -294,4 +378,4 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#eee",
   },
-}); 
+});
