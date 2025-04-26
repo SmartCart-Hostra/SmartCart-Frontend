@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import AddToCart from "./add_cart";
+import AddToCart from "./add_recipe_cart";
 
 const screenWidth = Dimensions.get("window").width;
 

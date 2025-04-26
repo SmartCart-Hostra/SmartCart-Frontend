@@ -233,7 +233,7 @@ export default function CartScreen() {
         return (
           <View key={index} style={styles.ingredientItem}>
             <View style={styles.ingredientMainContent}>
-              <Text style={styles.ingredientName}>{ingredient.name}</Text>
+              <Text style={styles.ingredientName}>{ingredient.description || ingredient.name}</Text>
               <Text style={styles.ingredientDetails}>
                 {ingredient.brand} - {ingredient.items[0]?.size || 'N/A'}
               </Text>

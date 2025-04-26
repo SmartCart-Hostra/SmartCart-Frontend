@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import AddToCart from "../components/add_cart";
+import AddToCart from "../components/add_recipe_cart";
 
 const API_URL = Constants.expoConfig?.extra?.API_URL;
 

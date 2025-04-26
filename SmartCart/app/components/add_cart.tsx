@@ -1,154 +1,122 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
+import React from 'react';
+import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = Constants.expoConfig?.extra?.API_URL;
-
-interface Recipe {
-  id: number;
-  title: string;
-  image: string;
+interface AddToCartProps {
+  item: {
+    id: string | number;
+    name: string;
+    price?: number;
+    image?: string;
+    description?: string;
+    brand?: string;
+    size?: string;
+    soldBy?: string;
+  };
 }
 
-interface KrogerIngredient {
-  name: string;
-  productId: string;
-  upc: string;
-  description: string;
-  brand: string;
-  items: Array<{
-    itemId: string;
-    price: {
-      regular: number;
-      promo: number | null;
-    };
-    size: string;
-    soldBy: string;
-    inventory: {
-      status: string;
-    };
-  }>;
-}
-
-interface CartItem {
-  recipe: Recipe;
-  krogerIngredients: KrogerIngredient[];
-  totalPrice: number;
-}
-
-export default function AddToCart({ recipe }: { recipe: Recipe }) {
-  const [loading, setLoading] = useState(false);
-
+export default function AddToCart({ item }: AddToCartProps) {
   const addToCart = async () => {
     try {
-      setLoading(true);
-      const token = await AsyncStorage.getItem('authToken');
-      if (!token) {
-        Alert.alert('Error', 'Authentication required. Please log in.');
-        return;
-      }
-
-      // Fetch Kroger ingredients for the recipe
-      const response = await fetch(`${API_URL}/kroger/recipe/${recipe.id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch Kroger ingredients');
-      }
-
-      const data = await response.json();
-      const { ingredients: krogerIngredients, totalPrice } = data;
-
-      // Get current cart items
       const storedCart = await AsyncStorage.getItem('cartRecipes');
-      const cart: CartItem[] = storedCart ? JSON.parse(storedCart) : [];
-
-      // Check if recipe already exists
-      const alreadyExists = cart.some(item => item.recipe.id === recipe.id);
-      if (alreadyExists) {
-        Alert.alert('Info', 'Recipe is already in your cart.');
-        return;
+      const cartItems = storedCart ? JSON.parse(storedCart) : [];
+      
+      // Find the grocery recipe in cart
+      let groceryRecipe = cartItems.find((cartItem: any) => cartItem.recipe.title === 'Grocery');
+      
+      if (!groceryRecipe) {
+        // Create new grocery recipe if it doesn't exist
+        groceryRecipe = {
+          recipe: {
+            id: 'grocery',
+            title: 'Grocery',
+            image: 'https://via.placeholder.com/150',
+          },
+          krogerIngredients: [],
+          totalPrice: 0,
+          selected: true,
+          ingredientQuantities: {}
+        };
+        cartItems.push(groceryRecipe);
       }
 
-      // Add new item to cart
-      const newCartItem: CartItem = {
-        recipe,
-        krogerIngredients,
-        totalPrice,
-      };
+      // Check if item already exists in grocery recipe
+      const existingIngredient = groceryRecipe.krogerIngredients.find(
+        (ing: any) => ing.productId === item.id.toString()
+      );
 
-      cart.push(newCartItem);
-      await AsyncStorage.setItem('cartRecipes', JSON.stringify(cart));
-      Alert.alert('Added', 'Recipe added to your cart with Kroger ingredients.');
+      if (existingIngredient) {
+        // Update quantity if item exists
+        groceryRecipe.ingredientQuantities[item.name] = 
+          (groceryRecipe.ingredientQuantities[item.name] || 0) + 1;
+      } else {
+        // Add new item if it doesn't exist
+        groceryRecipe.krogerIngredients.push({
+          name: item.name,
+          productId: item.id.toString(),
+          upc: '',
+          description: item.description || item.name,
+          brand: item.brand || '',
+          images: [{
+            perspective: 'front',
+            featured: true,
+            sizes: [{
+              size: 'large',
+              url: item.image || 'https://via.placeholder.com/150'
+            }]
+          }],
+          items: [{
+            itemId: item.id.toString(),
+            price: {
+              regular: item.price || 0,
+              promo: null
+            },
+            size: item.size || '',
+            soldBy: item.soldBy || '',
+            inventory: {
+              status: 'Available'
+            }
+          }]
+        });
+        groceryRecipe.ingredientQuantities[item.name] = 1;
+      }
+
+      // Update total price
+      groceryRecipe.totalPrice = groceryRecipe.krogerIngredients.reduce((total: number, ing: any) => {
+        const quantity = groceryRecipe.ingredientQuantities[ing.name] || 0;
+        return total + (ing.items[0].price.regular * quantity);
+      }, 0);
+
+      await AsyncStorage.setItem('cartRecipes', JSON.stringify(cartItems));
+      Alert.alert('Success', 'Item added to cart');
     } catch (error) {
-      console.error('Add to cart error:', error);
-      Alert.alert('Error', 'Failed to add recipe to cart. Please try again.');
-    } finally {
-      setLoading(false);
+      console.error('Error adding to cart:', error);
+      Alert.alert('Error', 'Failed to add item to cart');
     }
   };
 
   return (
-    <TouchableOpacity
-      style={[styles.addButton, loading && styles.addButtonDisabled]}
-      onPress={addToCart}
-      disabled={loading}
-    >
-      {loading ? (
-        <ActivityIndicator color="#fff" />
-      ) : (
-        <>
-          <Ionicons name="cart-outline" size={20} color="#fff" style={styles.icon} />
-          <Text style={styles.addButtonText}>Add to Cart</Text>
-        </>
-      )}
+    <TouchableOpacity style={styles.addButton} onPress={addToCart}>
+      <Ionicons name="cart-outline" size={20} color="#fff" />
+      <Text style={styles.buttonText}>Add to Cart</Text>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   addButton: {
-    backgroundColor: '#2D6A4F',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginTop: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 120,
     flexDirection: 'row',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    alignItems: 'center',
+    backgroundColor: '#2D6A4F',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 8,
   },
-  addButtonDisabled: {
-    opacity: 0.7,
-  },
-  addButtonText: {
+  buttonText: {
     color: '#fff',
-    fontWeight: 'bold',
+    marginLeft: 4,
     fontSize: 14,
-  },
-  icon: {
-    marginRight: 8,
+    fontWeight: '600',
   },
 }); 

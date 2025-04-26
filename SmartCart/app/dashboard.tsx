@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import HomeScreen from "./(tabs)/home";  // ✅ Import from (tabs)
 import SettingsScreen from "./(tabs)/settings";  // ✅ Import from (tabs)
 import SavedRecipesScreen from "./(tabs)/savedRecipesScreen";  // ✅ Import saved recipes
+import GroceryScreen from "./(tabs)/grocery";  // Import grocery screen
 
 const Tab = createBottomTabNavigator();
 
@@ -23,6 +24,7 @@ export default function Dashboard() {
             Profile: "person",
             "Saved Recipes": "heart",
             Settings: "settings",
+            Grocery: "basket",  // Add grocery icon
           };
 
           const iconName = iconMap[route.name] || "help-circle"; // ✅ Default fallback icon
@@ -35,6 +37,7 @@ export default function Dashboard() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Saved Recipes" component={SavedRecipesScreen} />
+      <Tab.Screen name="Grocery" component={GroceryScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );

@@ -19,7 +19,7 @@ import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import RecipeFilter from "./components/recipe_filter";
-import AddToCart from "./components/add_cart";
+import AddToCart from "./components/add_recipe_cart";
 
 const API_URL = Constants.expoConfig?.extra?.API_URL;
 const screenWidth = Dimensions.get("window").width;
