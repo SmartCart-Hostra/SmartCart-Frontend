@@ -29,7 +29,7 @@ interface Recipe {
   id: number;
   title: string;
   image: string;
-  match_score?: number; // for smart feed
+  match_score?: number;
 }
 
 interface Filters {
@@ -51,14 +51,11 @@ export default function RecipeSearchScreen() {
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const rotateAnim = new Animated.Value(0);
 
-<<<<<<< Updated upstream
-  // Animation for filter icon rotation
-=======
-  // ✅ Smart Recommendations
   const [smartRecommendations, setSmartRecommendations] = useState<Recipe[]>([]);
   const [loadingSmart, setLoadingSmart] = useState(true);
   const [showSmartPrompt, setShowSmartPrompt] = useState(false);
 
+  // Load token and trigger search if query exists
   useEffect(() => {
     const loadTokenAndSearch = async () => {
       try {
@@ -90,7 +87,7 @@ export default function RecipeSearchScreen() {
     }
   }, [token]);
 
-  // ✅ Smart Recs loader
+  // Fetch Smart Recommendations
   useEffect(() => {
     const fetchSmartFeed = async () => {
       try {
@@ -125,7 +122,7 @@ export default function RecipeSearchScreen() {
     fetchSmartFeed();
   }, [token]);
 
->>>>>>> Stashed changes
+  // Rotate animation for filter button
   useEffect(() => {
     Animated.timing(rotateAnim, {
       toValue: isFilterVisible ? 1 : 0,
@@ -138,25 +135,6 @@ export default function RecipeSearchScreen() {
     inputRange: [0, 1],
     outputRange: ['0deg', '180deg'],
   });
-
-  // First useEffect to load token
-  useEffect(() => {
-    const loadToken = async () => {
-      try {
-        const storedToken = await AsyncStorage.getItem("authToken");
-        if (!storedToken) {
-          Alert.alert("Error", "Authentication required. Please log in.");
-          router.push("/");
-          return;
-        }
-        setToken(storedToken);
-      } catch (error) {
-        console.error("Error loading token:", error);
-      }
-    };
-
-    loadToken();
-  }, []);
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) return;
@@ -252,6 +230,7 @@ export default function RecipeSearchScreen() {
           </View>
         </View>
 
+        {/* Filters */}
         {isFilterVisible && (
           <RecipeFilter
             currentFilters={filters}
@@ -356,7 +335,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    width: 240
+    width: 240,
   },
   recipeContent: {
     width: "100%",
