@@ -8,3 +8,11 @@ ScrollView → Allows scrolling when needed
 TouchableWithoutFeedback → Dismisses keyboard when tapping outside
 
 npx expo start
+
+
+if the update is not working 
+rm -rf node_modules
+rm package-lock.json
+npm cache clean --force
+npm install --legacy-peer-deps
+npx expo start --clear
