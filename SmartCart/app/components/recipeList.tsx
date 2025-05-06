@@ -19,11 +19,13 @@ const screenWidth = Dimensions.get("window").width;
 export default function RecipeList({
   recipes,
   loading,
-  fetchRandomRecipes,
+  fetchRandomRecipes = () => {},
+  showMatchScore = false,
 }: {
   recipes: any[];
   loading: boolean;
-  fetchRandomRecipes: () => void;
+  fetchRandomRecipes?: () => void;
+  showMatchScore?: boolean;
 }) {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
@@ -56,6 +58,11 @@ export default function RecipeList({
                 <Text style={styles.recipeTitle} numberOfLines={2}>
                   {item.title}
                 </Text>
+                {showMatchScore && item.match_score !== undefined && (
+                  <Text style={styles.matchScoreText}>
+                    🔍 Match Score: {item.match_score}%
+                  </Text>
+                )}
               </TouchableOpacity>
 
               <AddToCart recipe={item} />
@@ -70,7 +77,6 @@ export default function RecipeList({
   );
 }
 
-// ✅ Updated Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -104,7 +110,13 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     marginTop: 8,
-    marginBottom: 10,
+    marginBottom: 6,
     color: "#333",
+  },
+  matchScoreText: {
+    fontSize: 14,
+    color: "#2D6A4F",
+    fontWeight: "600",
+    marginBottom: 8,
   },
 });

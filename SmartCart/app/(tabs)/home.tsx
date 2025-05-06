@@ -8,6 +8,7 @@ import {
   Alert,
   Keyboard,
   TouchableWithoutFeedback,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -22,12 +23,14 @@ interface Recipe {
   id: number;
   title: string;
   image: string;
+  match_score?: number;
 }
 
 export default function HomeScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [smartRecipes, setSmartRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState("");
 
@@ -42,11 +45,11 @@ export default function HomeScreen() {
         }
         setToken(storedToken);
         fetchRandomRecipes(storedToken);
+        fetchSmartRecommendations(storedToken);
       } catch (error) {
         console.error("Error loading token:", error);
       }
     };
-
     loadToken();
   }, []);
 
@@ -62,17 +65,15 @@ export default function HomeScreen() {
       });
 
       const data = await response.json();
-      if (response.status !== 200) {
-        throw new Error(data.error || "Failed to fetch recipes");
-      }
+      if (response.status !== 200) throw new Error(data.error);
 
-      const uniqueRecipes = [];
-      const seenIds = new Set();
+      const uniqueRecipes: Recipe[] = [];
+      const seenIds = new Set<number>();
 
-      for (const recipe of data.results) {
-        if (!seenIds.has(recipe.id)) {
-          seenIds.add(recipe.id);
-          uniqueRecipes.push(recipe);
+      for (const r of data.results) {
+        if (!seenIds.has(r.id)) {
+          seenIds.add(r.id);
+          uniqueRecipes.push(r);
         }
       }
 
@@ -82,6 +83,29 @@ export default function HomeScreen() {
       Alert.alert("Error", "Failed to load recipes. Please try again.");
     }
     setLoading(false);
+  };
+
+  const fetchSmartRecommendations = async (authToken: string) => {
+    try {
+      const response = await fetch(`${API_URL}/smart-recommendations`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      const data = await response.json();
+      console.log("Smart Recommendations Response:", data);
+
+      if (data.showSmartRecommendations) {
+        console.log("Smart Recipes:", data.smartRecommendations);
+        setSmartRecipes(data.smartRecommendations || []);
+      } else {
+        console.log("No smart recommendations available.");
+      }
+    } catch (error) {
+      console.error("Smart recommendations error:", error);
+    }
   };
 
   const handleSearch = async () => {
@@ -97,35 +121,13 @@ export default function HomeScreen() {
       });
 
       const data = await response.json();
-      if (response.status !== 200) {
-        throw new Error(data.error || "Failed to fetch recipes");
-      }
-
+      if (response.status !== 200) throw new Error(data.error);
       setRecipes(data.results || []);
     } catch (error) {
       console.error("Error searching recipes:", error);
       Alert.alert("Error", "Failed to search recipes. Please try again.");
     }
     setLoading(false);
-  };
-
-  const addToCart = async (recipe: any) => {
-    try {
-      const storedCart = await AsyncStorage.getItem("cartRecipes");
-      const cart = storedCart ? JSON.parse(storedCart) : [];
-
-      const alreadyExists = cart.some((item: any) => item.id === recipe.id);
-      if (alreadyExists) {
-        Alert.alert("Info", "Recipe is already in your cart.");
-        return;
-      }
-
-      cart.push({ id: recipe.id, title: recipe.title, image: recipe.image });
-      await AsyncStorage.setItem("cartRecipes", JSON.stringify(cart));
-      Alert.alert("Added", "Recipe added to your cart.");
-    } catch (error) {
-      console.error("Add to cart error:", error);
-    }
   };
 
   return (
@@ -140,41 +142,37 @@ export default function HomeScreen() {
                 placeholder="Search Recipes..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                onSubmitEditing={() => router.push({
-                  pathname: "/recipeSearch",
-                  params: { query: searchQuery }
-                })}
+                onSubmitEditing={handleSearch}
               />
-              <TouchableOpacity 
-                style={styles.searchButton}
-                onPress={() => router.push({
-                  pathname: "/recipeSearch",
-                  params: { query: searchQuery }
-                })}
-              >
+              <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
                 <Ionicons name="search" size={24} color="#007BFF" />
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              onPress={() => router.push("/preferencesScreen")}
-              style={styles.settingsButton}
-            >
+            <TouchableOpacity onPress={() => router.push("/preferencesScreen")} style={styles.settingsButton}>
               <Ionicons name="filter" size={34} color="black" />
             </TouchableOpacity>
           </View>
 
-          {/* "Try It Out" Text */}
-          <Text style={styles.tryItOutText}>
-            🍽️ Try Out Random Recipes Fit Your Preference
-          </Text>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {/* Smart Recommendations */}
+            {smartRecipes.length > 0 && (
+              <>
+                <Text style={styles.sectionTitle}>✨ Smart Recommendations</Text>
+                <RecipeList recipes={smartRecipes} loading={false} showMatchScore />
+              </>
+            )}
 
-          {/* Recipe List */}
-          <RecipeList
-            recipes={recipes}
-            loading={loading}
-            fetchRandomRecipes={() => fetchRandomRecipes(token)}
-          />
+            {/* Try It Out Text */}
+            <Text style={styles.sectionTitle}>🍽️ Try Out Random Recipes</Text>
+
+            {/* Recipe List */}
+            <RecipeList
+              recipes={recipes}
+              loading={loading}
+              fetchRandomRecipes={() => fetchRandomRecipes(token)}
+            />
+          </ScrollView>
 
           {/* Floating Cart Button */}
           <TouchableOpacity
@@ -189,7 +187,6 @@ export default function HomeScreen() {
   );
 }
 
-// Styles
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -207,8 +204,8 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   searchInput: {
     flex: 1,
@@ -228,11 +225,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  tryItOutText: {
+  sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    textAlign: "center",
-    marginVertical: 10,
+    marginHorizontal: 15,
+    marginTop: 10,
+    marginBottom: 5,
     color: "#333",
   },
   cartButton: {
