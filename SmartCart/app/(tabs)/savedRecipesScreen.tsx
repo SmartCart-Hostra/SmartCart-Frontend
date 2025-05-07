@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 type RecipeType = {
   id: string;
+  recipe_id: number;
   title: string;
   image: string;
 };
@@ -70,23 +71,35 @@ const SavedRecipesScreen: React.FC = () => {
     setRefreshing(false);
   }, []);
 
-  const removeFavorite = async (id: string) => {
+  const removeFavorite = async (recipeId: number) => {
     try {
       const token = await AsyncStorage.getItem("authToken");
-      const updatedRecipes = savedRecipes.filter((recipe) => recipe.id !== id);
-      setSavedRecipes(updatedRecipes);
+      if (!token) {
+        Alert.alert("Error", "Authentication required. Please log in.");
+        return;
+      }
 
-      await fetch(`${API_URL}/saved-recipes`, {
+      const response = await fetch(`${API_URL}/saved-recipes`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ recipe_id: id }),
+        body: JSON.stringify({ recipe_id: recipeId }),
       });
-    } catch (error) {
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to remove recipe");
+      }
+
+      // Only update UI after successful deletion
+      const updatedRecipes = savedRecipes.filter((recipe) => recipe.recipe_id !== recipeId);
+      setSavedRecipes(updatedRecipes);
+      Alert.alert("Success", "Recipe removed from saved recipes");
+    } catch (error: any) {
       console.error("Error removing recipe:", error);
-      Alert.alert("Error", "Failed to remove recipe.");
+      Alert.alert("Error", error.message || "Failed to remove recipe. Please try again.");
     }
   };
 
@@ -108,7 +121,7 @@ const SavedRecipesScreen: React.FC = () => {
                 <Text style={styles.recipeTitle}>{item.title}</Text>
               </View>
 
-              <TouchableOpacity onPress={() => removeFavorite(item.id)} style={styles.heartContainer}>
+              <TouchableOpacity onPress={() => removeFavorite(item.recipe_id)} style={styles.heartContainer}>
                 <Ionicons name="heart" size={24} color="red" />
               </TouchableOpacity>
             </View>

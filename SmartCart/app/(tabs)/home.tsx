@@ -158,13 +158,34 @@ export default function HomeScreen() {
                 placeholder="Search Recipes..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                onSubmitEditing={handleSearch}
+                onSubmitEditing={() => router.push({
+                  pathname: "/recipeSearch",
+                  params: { query: searchQuery }
+                })}
               />
-              <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+              <TouchableOpacity 
+                style={styles.searchButton}
+                onPress={() => router.push({
+                  pathname: "/recipeSearch",
+                  params: { query: searchQuery }
+                })}
+              >
                 <Ionicons name="search" size={24} color="#007BFF" />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={() => router.push("/preferencesScreen")} style={styles.settingsButton}>
+
+            {/* Saved Recipes Button */}
+            <TouchableOpacity
+              onPress={() => router.push("/(tabs)/savedRecipesScreen")}
+              style={styles.settingsButton}
+            >
+              <Ionicons name="heart" size={34} color="red" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push("/preferencesScreen")}
+              style={styles.settingsButton}
+            >
               <Ionicons name="filter" size={34} color="black" />
             </TouchableOpacity>
           </View>
