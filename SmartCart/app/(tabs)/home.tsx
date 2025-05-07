@@ -8,7 +8,8 @@ import {
   Alert,
   Keyboard,
   TouchableWithoutFeedback,
-  ScrollView,
+  FlatList,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -32,6 +33,7 @@ export default function HomeScreen() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [smartRecipes, setSmartRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [token, setToken] = useState("");
 
   useEffect(() => {
@@ -43,15 +45,31 @@ export default function HomeScreen() {
           router.push("/");
           return;
         }
+
         setToken(storedToken);
-        fetchRandomRecipes(storedToken);
-        fetchSmartRecommendations(storedToken);
+        await Promise.all([
+          fetchRandomRecipes(storedToken),
+          fetchSmartRecommendations(storedToken),
+        ]);
       } catch (error) {
         console.error("Error loading token:", error);
       }
     };
     loadToken();
   }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        fetchRandomRecipes(token),
+        fetchSmartRecommendations(token),
+      ]);
+    } catch (error) {
+      console.error("Error during refresh:", error);
+    }
+    setRefreshing(false);
+  };
 
   const fetchRandomRecipes = async (authToken: string) => {
     setLoading(true);
@@ -68,11 +86,10 @@ export default function HomeScreen() {
       if (response.status !== 200) throw new Error(data.error);
 
       const uniqueRecipes: Recipe[] = [];
-      const seenIds = new Set<number>();
-
+      const seen = new Set();
       for (const r of data.results) {
-        if (!seenIds.has(r.id)) {
-          seenIds.add(r.id);
+        if (!seen.has(r.id)) {
+          seen.add(r.id);
           uniqueRecipes.push(r);
         }
       }
@@ -95,16 +112,15 @@ export default function HomeScreen() {
       });
 
       const data = await response.json();
-      console.log("Smart Recommendations Response:", data);
 
-      if (data.showSmartRecommendations) {
-        console.log("Smart Recipes:", data.smartRecommendations);
-        setSmartRecipes(data.smartRecommendations || []);
+      if (data.smartRecommendations && Array.isArray(data.smartRecommendations)) {
+        setSmartRecipes(data.smartRecommendations);
       } else {
-        console.log("No smart recommendations available.");
+        setSmartRecipes([]);
       }
     } catch (error) {
       console.error("Smart recommendations error:", error);
+      setSmartRecipes([]);
     }
   };
 
@@ -122,6 +138,7 @@ export default function HomeScreen() {
 
       const data = await response.json();
       if (response.status !== 200) throw new Error(data.error);
+
       setRecipes(data.results || []);
     } catch (error) {
       console.error("Error searching recipes:", error);
@@ -134,7 +151,6 @@ export default function HomeScreen() {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.container}>
-          {/* Top Bar */}
           <View style={styles.topBar}>
             <View style={styles.searchContainer}>
               <TextInput
@@ -148,33 +164,37 @@ export default function HomeScreen() {
                 <Ionicons name="search" size={24} color="#007BFF" />
               </TouchableOpacity>
             </View>
-
             <TouchableOpacity onPress={() => router.push("/preferencesScreen")} style={styles.settingsButton}>
               <Ionicons name="filter" size={34} color="black" />
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Smart Recommendations */}
-            {smartRecipes.length > 0 && (
+          <FlatList
+            ListHeaderComponent={
               <>
                 <Text style={styles.sectionTitle}>✨ Smart Recommendations</Text>
-                <RecipeList recipes={smartRecipes} loading={false} showMatchScore />
+                <RecipeList
+                  recipes={smartRecipes}
+                  loading={false}
+                  showMatchScore
+                />
+                <Text style={styles.sectionTitle}>🍽️ Your Personalized Recipe Feed</Text>
               </>
-            )}
+            }
+            data={recipes}
+            renderItem={null}
+            ListFooterComponent={
+              <RecipeList
+                recipes={recipes}
+                loading={loading}
+                fetchRandomRecipes={() => fetchRandomRecipes(token)}
+              />
+            }
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#007BFF"]} />
+            }
+          />
 
-            {/* Try It Out Text */}
-            <Text style={styles.sectionTitle}>🍽️ Try Out Random Recipes</Text>
-
-            {/* Recipe List */}
-            <RecipeList
-              recipes={recipes}
-              loading={loading}
-              fetchRandomRecipes={() => fetchRandomRecipes(token)}
-            />
-          </ScrollView>
-
-          {/* Floating Cart Button */}
           <TouchableOpacity
             style={styles.cartButton}
             onPress={() => router.push("/(tabs)/cart")}
