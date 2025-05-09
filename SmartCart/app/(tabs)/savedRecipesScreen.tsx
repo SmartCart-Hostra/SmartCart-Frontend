@@ -113,7 +113,7 @@ const SavedRecipesScreen: React.FC = () => {
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <View style={styles.recipeCard}>
-              <TouchableOpacity onPress={() => router.push(`/recipeDetail/${item.id}`)}>
+              <TouchableOpacity onPress={() => router.push(`/recipeDetail/${item.recipe_id}`)}>
                 <Image source={{ uri: item.image }} style={styles.recipeImage} />
               </TouchableOpacity>
 
